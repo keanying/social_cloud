@@ -10,6 +10,7 @@ from src.utils.parser_transport import (
 from src.api.response import make_response
 from src.api.download import bundle as bundle_media, download as download_media, grant_media_urls, media as inline_media
 from src.db import refund_user_credit, reserve_user_credit
+from src.api.status import public_status
 from src.api.access import (
     authenticate_api_key,
     consume_rate_limit,
@@ -36,6 +37,14 @@ def health():
 def download():
     """一键下载：中转当前登录用户近期解析得到的媒体文件。"""
     return download_media()
+
+
+@bp.route('/status', methods=['GET'])
+def status():
+    """公开的系统状态汇总（首页右下角状态面板）。"""
+    response = jsonify(public_status())
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @bp.route('/download/bundle', methods=['POST'])

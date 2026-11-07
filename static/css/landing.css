@@ -398,3 +398,48 @@ body.lp { background: var(--bg); color: var(--ink); }
 
 .faq-item summary .chev { transition: transform .25s; }
 .faq-item[open] summary .chev { transform: rotate(180deg); }
+
+/* ==========================================================================
+ * 系统状态：右下角齿轮 + 悬停面板（HeroUI Popover 风格）
+ * ========================================================================== */
+.sys { position: fixed; right: 22px; bottom: 22px; z-index: 45; --sc: #10b981; }
+.sys[data-state="degraded"] { --sc: #f59e0b; }
+.sys[data-state="down"] { --sc: #ef4444; }
+.sys-btn {
+    position: relative; width: 48px; height: 48px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    background: #fff; color: var(--ink); box-shadow: 0 0 1px rgba(14, 21, 37, .3), 0 10px 26px -10px rgba(14, 21, 37, .4);
+    transition: transform .2s, box-shadow .2s;
+}
+.sys-btn:hover, .sys.is-open .sys-btn { transform: translateY(-2px); box-shadow: 0 0 1px rgba(14, 21, 37, .3), 0 14px 30px -12px rgba(14, 21, 37, .5); }
+.sys-gear { display: inline-flex; color: var(--sc); animation: sysSpin 9s linear infinite; }
+.sys-gear .ms { width: 26px; height: 26px; }
+.sys:hover .sys-gear, .sys.is-open .sys-gear { animation-duration: 2.4s; }
+.sys[data-state="down"] .sys-gear { animation: none; }
+.sys-dot { position: absolute; right: 7px; top: 7px; width: 10px; height: 10px; border-radius: 50%; background: var(--sc); border: 2px solid #fff; }
+.sys-dot::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--sc); animation: sysPing 2s ease-out infinite; }
+.sys-panel {
+    position: absolute; right: 0; bottom: 60px; width: 300px; padding: 16px; border-radius: 18px; background: #fff;
+    box-shadow: 0 0 1px rgba(14, 21, 37, .3), 0 24px 50px -18px rgba(14, 21, 37, .45);
+    opacity: 0; visibility: hidden; transform: translateY(8px) scale(.97); transform-origin: bottom right;
+    transition: opacity .16s ease, transform .2s cubic-bezier(.2, .9, .3, 1.15), visibility 0s linear .2s;
+}
+.sys:hover .sys-panel, .sys:focus-within .sys-panel, .sys.is-open .sys-panel { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+.sys-head { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.sys-badge { width: 32px; height: 32px; border-radius: 10px; flex: none; background: color-mix(in srgb, var(--sc) 14%, #fff); position: relative; }
+.sys-badge::after { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--sc); }
+.sys-title { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+.sys-sub { margin-top: 2px; font-size: 12px; color: var(--muted); }
+.sys-list { margin-top: 8px; }
+.sys-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 13px; }
+.sys-list .k { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); }
+.sys-list .k .ms { width: 16px; height: 16px; color: #8b93a5; }
+.sys-list .v { font-weight: 600; color: var(--ink); text-align: right; }
+.sys-list .v.is-ok { color: #059669; }
+.sys-list .v.is-warn { color: #d97706; }
+.sys-list .v.is-bad { color: #dc2626; }
+.sys-bar { margin-top: 6px; height: 6px; border-radius: 6px; background: #eef1f6; overflow: hidden; }
+.sys-bar i { display: block; height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, var(--teal), var(--brand)); transition: width .6s cubic-bezier(.2, .8, .2, 1); }
+@keyframes sysSpin { to { transform: rotate(360deg); } }
+@keyframes sysPing { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.2); opacity: 0; } }
+@media (max-width: 640px) { .sys { right: 14px; bottom: 14px; } .sys-panel { width: min(300px, calc(100vw - 28px)); } }
+@media (prefers-reduced-motion: reduce) { .sys-gear, .sys-dot::after { animation: none !important; } }

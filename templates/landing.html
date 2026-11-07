@@ -476,9 +476,36 @@
         </div>
         <div class="wrap py-5 border-t border-[#e6eaf2] flex flex-col sm:flex-row gap-2 justify-between text-xs text-[#8b93a5]">
             <span>© {{ current_year }} 社媒云</span>
-            <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full {{ 'bg-emerald-500' if api_enabled else 'bg-amber-500' }}"></span>{{ '服务正常' if api_enabled else '服务维护中' }}</span>
+            <span>请仅保存自有或已获授权的内容</span>
         </div>
     </footer>
+
+    <!-- 系统状态：右下角齿轮，悬停 / 点击查看各项服务状态（数据来自 /api/status） -->
+    {% set initial_state = 'ok' if parser_enabled else ('degraded' if api_enabled else 'down') %}
+    <div id="sysStatus" class="sys" data-state="{{ initial_state }}">
+        <button type="button" class="sys-btn" id="sysBtn" aria-expanded="false" aria-controls="sysPanel" aria-label="系统状态">
+            <span class="sys-gear">{{ ms('settings') }}</span>
+            <span class="sys-dot" aria-hidden="true"></span>
+        </button>
+        <div class="sys-panel" id="sysPanel" role="dialog" aria-label="系统状态">
+            <div class="sys-head">
+                <span class="sys-badge" aria-hidden="true"></span>
+                <div class="min-w-0">
+                    <div class="sys-title" id="sysTitle">{{ '所有服务运行正常' if initial_state == 'ok' else ('部分服务受限' if initial_state == 'degraded' else '服务维护中') }}</div>
+                    <div class="sys-sub" id="sysSub">正在获取最新状态…</div>
+                </div>
+            </div>
+            <ul class="sys-list">
+                <li><span class="k">{{ ms('public') }}API 服务</span><span class="v" id="sysApi">—</span></li>
+                <li><span class="k">{{ ms('bolt') }}在线解析</span><span class="v" id="sysParse">—</span></li>
+                <li><span class="k">{{ ms('photo_library') }}支持平台</span><span class="v" id="sysPlatforms">—</span></li>
+                <li><span class="k">{{ ms('check_circle-f') }}24 小时成功率</span><span class="v" id="sysRate">—</span></li>
+                <li><span class="k">{{ ms('schedule') }}平均解析耗时</span><span class="v" id="sysAvg">—</span></li>
+                <li><span class="k">{{ ms('lock') }}使用方式</span><span class="v" id="sysLogin">—</span></li>
+            </ul>
+            <div class="sys-bar"><i id="sysRateBar"></i></div>
+        </div>
+    </div>
     <script>
         const input=document.getElementById('parseUrl');
         let lastParsedData = null;
@@ -1651,6 +1678,57 @@
                 new IntersectionObserver((entries) => { demoVisible = entries[0].isIntersecting; }, { threshold: 0.3 })
                     .observe(document.getElementById('guide'));
                 runGuideDemo(pasteEl.textContent);
+            }
+
+            /* 系统状态面板：/api/status 汇总 + 浏览器实测 API 延迟 */
+            const sys = document.getElementById('sysStatus');
+            if (sys) {
+                const $ = (id) => document.getElementById(id);
+                const setV = (id, text, tone) => { const el = $(id); el.textContent = text; el.className = 'v' + (tone ? ' is-' + tone : ''); };
+                let lastLoad = 0, loading = false;
+                async function loadStatus(force) {
+                    if (loading || (!force && Date.now() - lastLoad < 20000)) return;
+                    loading = true;
+                    try {
+                        const t0 = performance.now();
+                        const health = await fetch('/api/health', { cache: 'no-store' });
+                        const ping = Math.round(performance.now() - t0);
+                        const st = await (await fetch('/api/status', { cache: 'no-store' })).json();
+                        lastLoad = Date.now();
+                        sys.dataset.state = st.overall;
+                        $('sysTitle').textContent = { ok: '所有服务运行正常', degraded: '部分服务受限', down: '服务维护中' }[st.overall] || '状态未知';
+                        $('sysSub').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+                        setV('sysApi', st.api_enabled && health.ok ? `正常 · ${ping} ms` : '维护中', st.api_enabled && health.ok ? (ping > 1500 ? 'warn' : 'ok') : 'bad');
+                        setV('sysParse', st.parser_enabled ? '开放中' : '暂停', st.parser_enabled ? 'ok' : 'warn');
+                        const allPf = st.platforms_available === st.platforms_total;
+                        setV('sysPlatforms', `${st.platforms_available} / ${st.platforms_total} 可用`, allPf ? 'ok' : 'warn');
+                        if (st.success_rate_24h === null) {
+                            setV('sysRate', '样本不足', '');
+                            $('sysRateBar').style.width = '0';
+                        } else {
+                            setV('sysRate', `${st.success_rate_24h}%`, st.success_rate_24h >= 80 ? 'ok' : 'warn');
+                            $('sysRateBar').style.width = `${Math.max(2, st.success_rate_24h)}%`;
+                        }
+                        setV('sysAvg', st.avg_ms_24h === null ? '—' : (st.avg_ms_24h >= 1000 ? `${(st.avg_ms_24h / 1000).toFixed(1)} 秒` : `${st.avg_ms_24h} ms`), '');
+                        setV('sysLogin', st.login_required ? '登录后使用 · 不扣点' : '免登录使用', '');
+                    } catch {
+                        sys.dataset.state = 'down';
+                        $('sysTitle').textContent = '无法连接服务';
+                        $('sysSub').textContent = '请检查网络后重试';
+                        setV('sysApi', '无法连接', 'bad');
+                    } finally {
+                        loading = false;
+                    }
+                }
+                const btn = document.getElementById('sysBtn');
+                const setOpen = (open) => { sys.classList.toggle('is-open', open); btn.setAttribute('aria-expanded', String(open)); if (open) loadStatus(); };
+                btn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!sys.classList.contains('is-open')); });
+                sys.addEventListener('mouseenter', () => loadStatus());
+                sys.addEventListener('focusin', () => loadStatus());
+                document.addEventListener('click', (e) => { if (!sys.contains(e.target)) setOpen(false); });
+                document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+                setInterval(() => { if (sys.matches(':hover') || sys.classList.contains('is-open')) loadStatus(true); }, 30000);
+                loadStatus(true);
             }
 
             /* Lenis 惯性滚动 */
