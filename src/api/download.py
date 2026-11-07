@@ -1,7 +1,9 @@
 """一键下载 / 本页播放：由服务端中转媒体文件。
 
 - /api/download：以附件形式返回，用于一键下载；
-- /api/media：以内联形式返回并透传 Range，用于页面内直接播放视频 / 音频、显示图片（可拖动进度）。
+- /api/media：以内联形式返回并透传 Range，用于页面内直接播放视频 / 音频、显示图片（可拖动进度）；
+- /api/download/bundle：把同一次解析的多个文件（视频、音频、图片）边下载边打包成一个 zip，
+  只触发一次浏览器下载，避免浏览器拦截「连续自动下载多个文件」。
 
 平台 CDN 普遍有防盗链和跨域限制，浏览器无法直接以 `download` 方式保存，因此由服务端中转。
 为避免中转接口被滥用为 SSRF 跳板：
@@ -15,6 +17,7 @@ import os
 import re
 import socket
 import time
+import zipfile
 from urllib.parse import quote, urljoin, urlparse
 
 import requests
@@ -28,6 +31,8 @@ logger = get_logger(__name__)
 
 GRANT_TTL_SECONDS = 2 * 3600
 MAX_DOWNLOAD_BYTES = int(os.getenv("MAX_DOWNLOAD_BYTES", str(1024 ** 3)))
+MAX_BUNDLE_BYTES = int(os.getenv("MAX_BUNDLE_BYTES", str(2 * 1024 ** 3)))
+MAX_BUNDLE_ITEMS = 40
 MAX_REDIRECTS = 5
 CHUNK_SIZE = 64 * 1024
 USER_AGENT = (
@@ -240,3 +245,96 @@ def download():
 
 def media():
     return _serve(inline=True)
+
+
+class _StreamSink:
+    """供 zipfile 写入的不可回退输出：写入的数据攒在缓冲区，由生成器逐段取出发送。"""
+
+    def __init__(self):
+        self._chunks = []
+
+    def write(self, data):
+        self._chunks.append(bytes(data))
+        return len(data)
+
+    def flush(self):
+        pass
+
+    def drain(self):
+        data = b"".join(self._chunks)
+        self._chunks.clear()
+        return data
+
+
+def _bundle_items():
+    urls = request.form.getlist("url")
+    names = request.form.getlist("name")
+    items = []
+    for i, url in enumerate(urls[:MAX_BUNDLE_ITEMS]):
+        url = (url or "").strip()
+        if url and len(url) <= 4096:
+            items.append((url, names[i] if i < len(names) else ""))
+    return items
+
+
+def bundle():
+    user = g.get("user")
+    if user is None:
+        return _error(401, "请先登录后再下载", "LOGIN_REQUIRED")
+    items = _bundle_items()
+    if not items:
+        return _error(400, "没有可下载的文件", "INVALID_URL")
+    if any(not _is_granted(user["id"], url) for url, _ in items):
+        return _error(403, "下载链接已过期，请重新解析后再下载", "DOWNLOAD_EXPIRED")
+    if request.form.get("check") == "1":
+        return make_response(200, "可以下载", None, True), 200
+
+    zip_name = _SAFE_NAME.sub(" ", (request.form.get("bundle") or "").strip())[:80].strip() or "社媒云下载"
+
+    def generate():
+        sink = _StreamSink()
+        used, failed, total = set(), [], 0
+        with zipfile.ZipFile(sink, mode="w", compression=zipfile.ZIP_STORED, allowZip64=True) as zf:
+            for url, name in items:
+                try:
+                    session, upstream = _open_upstream(url)
+                except (DownloadRejected, requests.RequestException):
+                    failed.append(name or url)
+                    continue
+                try:
+                    if upstream.status_code >= 400:
+                        failed.append(name or url)
+                        continue
+                    filename = _filename(name, url, upstream.headers.get("Content-Type"))
+                    base, ext = os.path.splitext(filename)
+                    n = 2
+                    while filename in used:
+                        filename = f"{base} ({n}){ext}"
+                        n += 1
+                    used.add(filename)
+                    info = zipfile.ZipInfo(filename, date_time=time.localtime()[:6])
+                    with zf.open(info, mode="w", force_zip64=True) as dest:
+                        for chunk in upstream.iter_content(CHUNK_SIZE):
+                            total += len(chunk)
+                            if total > MAX_BUNDLE_BYTES:
+                                break
+                            dest.write(chunk)
+                            out = sink.drain()
+                            if out:
+                                yield out
+                    yield sink.drain()
+                    if total > MAX_BUNDLE_BYTES:
+                        failed.append("（超过打包大小上限，其余文件未打包）")
+                        break
+                finally:
+                    upstream.close()
+                    session.close()
+            if failed:
+                note = "以下文件下载失败（可能已过期或被平台拒绝），请重新解析后单独下载：\n" + "\n".join(failed)
+                zf.writestr("下载失败说明.txt", note.encode("utf-8"))
+        yield sink.drain()
+
+    headers = dict(_SAFE_HEADERS)
+    headers["Cache-Control"] = "no-store"
+    headers["Content-Disposition"] = f"attachment; filename=\"download.zip\"; filename*=UTF-8''{quote(zip_name + '.zip')}"
+    return Response(stream_with_context(generate()), status=200, headers=headers, content_type="application/zip")

@@ -18,7 +18,7 @@
 
 - 一个输入框粘贴任意平台的分享链接或整段分享文案，自动识别平台
 - 解析结果在本页直接播放视频和音乐、查看图集与实况照片（服务端中转，绕开防盗链，可拖动进度）
-- 单个下载或「一键下载全部」，文件按「平台-标题-视频 / 图1」自动命名
+- 单个下载，或「一键下载全部」把视频、背景音乐、图片打包成一个 zip；文件按「平台-标题-视频 / 音频 / 图1」自动命名
 - 默认登录后才能解析（可在后台关闭）；**首页解析、播放、下载都不扣点数**
 
 **用户控制台**（`/console`）
@@ -132,7 +132,8 @@ docker compose logs -f web
 | `TRUST_PROXY_HEADERS` | 部署在 Nginx 等反向代理之后时设为 `true` | `false` |
 | `API_ONLY` | 纯 API 模式：不提供网页，接口免 Key 调用 | `false` |
 | `CORS_ORIGINS` | `/api/*` 允许的跨域来源，逗号分隔 | `*` |
-| `MAX_DOWNLOAD_BYTES` | 本页播放 / 一键下载中转的单文件上限（字节） | `1073741824`（1 GB） |
+| `MAX_DOWNLOAD_BYTES` | 本页播放 / 单个下载中转的单文件上限（字节） | `1073741824`（1 GB） |
+| `MAX_BUNDLE_BYTES` | 「一键下载全部」打包 zip 的总大小上限（字节） | `2147483648`（2 GB） |
 | `DYNAMIC_PROXY_API_URL` | 平台风控时自动切换的动态代理提取地址，见 [docs/proxy-retry.md](docs/proxy-retry.md) | 空 |
 | `XHS_COOKIE` 等 | 各平台 Cookie 凭据，见 [docs/cookie-config.md](docs/cookie-config.md) | 空 |
 
@@ -140,7 +141,7 @@ docker compose logs -f web
 
 ### 本页播放与一键下载
 
-平台 CDN 普遍有防盗链，浏览器无法直接播放或下载，因此由服务端中转：`/api/media` 用于本页播放（支持 Range 拖动进度），`/api/download` 用于下载。
+平台 CDN 普遍有防盗链，浏览器无法直接播放或下载，因此由服务端中转：`/api/media` 用于本页播放（支持 Range 拖动进度），`/api/download` 用于单个下载，`/api/download/bundle` 把多个文件边下载边打包成一个 zip（只触发一次下载，避免浏览器拦截连续下载；失败的文件会在 zip 内的说明中列出）。
 
 - 只中转**当前登录用户 2 小时内解析得到的地址**，不能被用来访问任意网址；
 - 每一跳重定向都会校验目标必须是公网地址，拒绝内网与本机地址；

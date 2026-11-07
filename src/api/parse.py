@@ -8,7 +8,7 @@ from src.utils.parser_transport import (
     Attempt, ParseFailure, ProxyAccessFailure, attempt_context,
 )
 from src.api.response import make_response
-from src.api.download import download as download_media, grant_media_urls, media as inline_media
+from src.api.download import bundle as bundle_media, download as download_media, grant_media_urls, media as inline_media
 from src.db import refund_user_credit, reserve_user_credit
 from src.api.access import (
     authenticate_api_key,
@@ -36,6 +36,12 @@ def health():
 def download():
     """一键下载：中转当前登录用户近期解析得到的媒体文件。"""
     return download_media()
+
+
+@bp.route('/download/bundle', methods=['POST'])
+def download_bundle():
+    """一键下载全部：把多个文件打包成一个 zip。"""
+    return bundle_media()
 
 
 @bp.route('/media', methods=['GET'])

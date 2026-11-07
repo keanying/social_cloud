@@ -1,8 +1,10 @@
 """首页解析需登录 + 一键下载中转。"""
+import io
 import os
 import socket
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import Mock, patch
 
 from werkzeug.security import generate_password_hash
@@ -213,6 +215,61 @@ class LoginRequiredParseTest(unittest.TestCase):
             response.get_data()  # 读完流式响应，释放请求上下文，避免影响后续用例
         self.assertEqual(response.mimetype, "application/octet-stream")
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+
+    # ---- 一键下载全部（zip 打包） ----
+    def bundle(self, check=False):
+        data = {"url": [VIDEO_URL, IMAGE_URL], "name": ["海边-视频", "海边-封面"], "bundle": "海边日落"}
+        if check:
+            data["check"] = "1"
+        return self.client.post("/api/download/bundle", data=data)
+
+    def test_bundle_requires_login_and_grants(self):
+        self.assertEqual(self.bundle().status_code, 401)
+        self.login()
+        response = self.client.post("/api/download/bundle", data={"url": ["https://evil.example.com/a.mp4"]})
+        self.assertEqual(response.status_code, 403)
+
+    def test_bundle_check_validates_without_upstream(self):
+        self.login()
+        self.parse()
+        with patch("src.api.download.requests.Session.get") as upstream:
+            response = self.bundle(check=True)
+        self.assertEqual(response.status_code, 200)
+        upstream.assert_not_called()
+
+    def test_bundle_streams_zip_with_all_files(self):
+        self.login()
+        self.parse()
+
+        def fake_get(url, **kwargs):
+            if url == VIDEO_URL:
+                return FakeUpstream(body=b"video-bytes")
+            return FakeUpstream(body=b"image-bytes", headers={"Content-Type": "image/jpeg"})
+
+        with patch("src.api.download.socket.getaddrinfo", return_value=PUBLIC_ADDRINFO), \
+                patch("src.api.download.requests.Session.get", side_effect=fake_get):
+            response = self.bundle()
+            body = response.get_data()
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("filename*=UTF-8''%E6%B5%B7%E8%BE%B9%E6%97%A5%E8%90%BD.zip", response.headers["Content-Disposition"])
+        with zipfile.ZipFile(io.BytesIO(body)) as zf:
+            self.assertEqual(zf.namelist(), ["海边-视频.mp4", "海边-封面.jpg"])
+            self.assertEqual(zf.read("海边-视频.mp4"), b"video-bytes")
+            self.assertEqual(zf.read("海边-封面.jpg"), b"image-bytes")
+
+    def test_bundle_reports_failed_items(self):
+        self.login()
+        self.parse()
+
+        def fake_get(url, **kwargs):
+            return FakeUpstream(body=b"video-bytes") if url == VIDEO_URL else FakeUpstream(status=404, body=b"")
+
+        with patch("src.api.download.socket.getaddrinfo", return_value=PUBLIC_ADDRINFO), \
+                patch("src.api.download.requests.Session.get", side_effect=fake_get):
+            body = self.bundle().get_data()
+        with zipfile.ZipFile(io.BytesIO(body)) as zf:
+            self.assertIn("海边-视频.mp4", zf.namelist())
+            self.assertIn("海边-封面", zf.read("下载失败说明.txt").decode("utf-8"))
 
     # ---- 首页登录弹窗的 JSON 登录 ----
     def test_fetch_login_returns_json(self):
