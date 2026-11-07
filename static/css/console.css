@@ -696,11 +696,15 @@ body.cs { background: #eef2f8; }
 .cs-content table tbody tr:hover td { background: rgba(46, 50, 56, .04) !important; }
 .cs-content table input[type="checkbox"] { width: 16px; height: 16px; border-radius: 4px; accent-color: var(--cs-blue); }
 /* 状态标签：圆角胶囊 + 前置圆点（Semi Tag shape="circle"） */
-.cs-content table td span.rounded-full[class*="bg-"] {
+/* 只匹配文字胶囊；带显式宽高的是圆点 / 开关等小元素，不处理 */
+.cs-content table td span.rounded-full[class*="bg-"]:not([class*="w-"]):not([class*="h-"]) {
   display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px !important;
-  border: 0 !important; font-size: 12px; font-weight: 500;
+  border: 0 !important; font-size: 12px; font-weight: 500; white-space: nowrap;
 }
-.cs-content table td span.rounded-full[class*="bg-"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .85; }
+/* 标签内已有自带圆点时不再重复添加 */
+.cs-content table td span.rounded-full[class*="bg-"]:not([class*="w-"]):not([class*="h-"]):not(:has(> span.rounded-full))::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .85; flex: none;
+}
 /* 头像 + 名称 */
 .cs-avatar-cell { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
 .cs-avatar-sm {
