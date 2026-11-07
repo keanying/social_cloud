@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from functools import wraps
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, current_app, flash, g, redirect, render_template, request, session, url_for
+from flask import jsonify, Blueprint, current_app, flash, g, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from src.db import get_db, setting, utcnow
@@ -205,12 +205,18 @@ def login():
     has_admin = bool(get_db().execute("SELECT 1 FROM users WHERE role='admin'").fetchone())
     homepage_enabled = (setting("homepage_enabled", "1") == "1")
     registration_enabled = (setting("registration_enabled", "1") == "1")
+    # 首页登录弹窗通过 fetch 提交，返回 JSON 而非页面跳转
+    wants_json = request.headers.get("X-Requested-With") == "fetch"
     if request.method == "POST":
         if not validate_csrf():
+            if wants_json:
+                return jsonify({"ok": False, "message": "页面已过期，请刷新后重试"}), 400
             flash("页面已过期，请重试", "error")
         else:
             username = request.form.get("username", "").strip()
             if auth_rate_limited("login", username):
+                if wants_json:
+                    return jsonify({"ok": False, "message": "登录尝试过于频繁，请稍后再试"}), 429
                 flash("登录尝试过于频繁，请稍后再试", "error")
                 return render_template(
                     "auth/login.html",
@@ -220,8 +226,12 @@ def login():
                 ), 429
             user = get_db().execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
             if user is None or not check_password_hash(user["password_hash"], request.form.get("password", "")):
+                if wants_json:
+                    return jsonify({"ok": False, "message": "用户名或密码错误"}), 401
                 flash("用户名或密码错误", "error")
             elif not user["active"]:
+                if wants_json:
+                    return jsonify({"ok": False, "message": "账号已被停用"}), 403
                 flash("账号已被停用", "error")
             else:
                 session.clear()
@@ -235,6 +245,8 @@ def login():
                     or (user["role"] != "admin" and target.startswith("/admin"))
                 ):
                     target = url_for("admin.dashboard") if user["role"] == "admin" else url_for("portal.dashboard")
+                if wants_json:
+                    return jsonify({"ok": True, "username": user["username"], "console": target})
                 return redirect(target)
     return render_template(
         "auth/login.html",

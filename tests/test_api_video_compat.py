@@ -4,6 +4,18 @@ from unittest.mock import patch
 from app import app
 
 
+# 这些用例验证的是「免登录」的首页解析行为；登录要求另见 tests/test_login_required_parse.py
+_login_patch = patch("src.api.parse.demo_login_required", return_value=False)
+
+
+def setUpModule():
+    _login_patch.start()
+
+
+def tearDownModule():
+    _login_patch.stop()
+
+
 class FakeParser:
     def __init__(self, video_url, video_list):
         self.video_url = video_url

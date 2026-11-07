@@ -29,4 +29,6 @@ def index():
         parser_enabled=api_enabled and demo_enabled,
         platform_names=sorted(set(DOMAIN_TO_NAME.values())),
         current_year=date.today().year,
+        login_required=setting('demo_login_required', '1') == '1',
+        registration_enabled=setting('registration_enabled', '1') == '1',
     )

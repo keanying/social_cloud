@@ -1,6 +1,6 @@
 import time
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 from configs.logging_config import get_logger
 from utils.web_fetcher import WebFetcher, UrlParser
 from src.parser_factory import ParserFactory
@@ -8,11 +8,13 @@ from src.utils.parser_transport import (
     Attempt, ParseFailure, ProxyAccessFailure, attempt_context,
 )
 from src.api.response import make_response
+from src.api.download import download as download_media, grant_media_urls
 from src.db import refund_user_credit, reserve_user_credit
 from src.api.access import (
     authenticate_api_key,
     consume_rate_limit,
     demo_enabled,
+    demo_login_required,
     get_client_ip,
     global_api_enabled,
     platform_access,
@@ -30,6 +32,12 @@ def health():
     return jsonify({'status': 'ok'}), 200
 
 
+@bp.route('/download', methods=['GET'])
+def download():
+    """一键下载：中转当前登录用户近期解析得到的媒体文件。"""
+    return download_media()
+
+
 @bp.route('/parse', methods=['GET', 'POST'])
 def parse():
     """解析接口，网页体验或微服务调用接口。"""
@@ -39,6 +47,9 @@ def parse():
     if not is_api_only:
         if not demo_enabled():
             return make_response(403, '在线体验暂未开放', None, False, 'DEMO_DISABLED'), 403
+        user = g.get('user')
+        if user is None and demo_login_required():
+            return make_response(401, '请先登录后再解析', None, False, 'LOGIN_REQUIRED'), 401
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
             return make_response(400, '请求体必须是 JSON 对象', None, False, 'INVALID_REQUEST'), 400
@@ -48,7 +59,7 @@ def parse():
             client_ip = get_client_ip()
             if not consume_rate_limit(f"demo_ip:{client_ip}", 5, window_seconds=60):
                 return make_response(429, '体验解析过于频繁，请 1 分钟后再试', None, False, 'RATE_LIMITED'), 429
-        return _execute_parse(data.get('text') or data.get('url'), None)
+        return _execute_parse(data.get('text') or data.get('url'), None, grant_user_id=user['id'] if user else None)
 
     # API_ONLY 模式：完全无限制，支持 GET/POST (JSON/Form/Query)
     text = None
@@ -100,7 +111,7 @@ def simple_parse():
     return _execute_parse(text, access)
 
 
-def _execute_parse(text, access):
+def _execute_parse(text, access, grant_user_id=None):
     started = time.monotonic()
     platform = None
     response = None
@@ -235,6 +246,11 @@ def _execute_parse(text, access):
             if content_data.get('full_duration'):
                 data_dict['full_duration'] = content_data['full_duration']
         
+        if grant_user_id:
+            try:
+                grant_media_urls(grant_user_id, data_dict)
+            except Exception:
+                logger.exception("Media download grant failed")
         logger.debug(f'Parse Success for platform {platform}')
         response, status = make_response(200, '成功', data_dict, True), 200
         credit_committed = True
