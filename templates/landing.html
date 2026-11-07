@@ -1320,14 +1320,45 @@
             if(idx >= 0) downloadOne(idx);
             else showToast('请重新解析后再下载', 'warning');
         }
+        // 一键下载全部：多个文件（视频、背景音乐、图片）由服务端打包成一个 zip，只触发一次下载，
+        // 避免浏览器拦截「连续自动下载多个文件」导致音频等后续文件下载不到
         async function downloadAll(){
             if(!downloadItems.length) return;
-            showToast(`即将下载 ${downloadItems.length} 个文件，浏览器提示时请选择「允许」`, 'success', 3500);
-            for(let i = 0; i < downloadItems.length; i++){
-                await downloadOne(i);
-                if(!isLoggedIn) return;
-                await new Promise(r => setTimeout(r, 900));
+            if(downloadItems.length === 1){ downloadOne(0); return; }
+            if(!isLoggedIn){ pendingAfterLogin = 'parse'; openLogin('登录后即可下载', '登录后会重新获取下载地址，再点一次下载即可。'); return; }
+            const fields = new FormData();
+            downloadItems.forEach(item => { fields.append('url', item.url); fields.append('name', item.name); });
+            fields.append('bundle', fileBase());
+            try {
+                const check = new FormData();
+                for(const [k, v] of fields.entries()) check.append(k, v);
+                check.append('check', '1');
+                const res = await fetch('/api/download/bundle', { method: 'POST', body: check, headers: { 'X-Requested-With': 'fetch' } });
+                const payload = await res.json().catch(() => ({}));
+                if(!res.ok){
+                    if(payload.error_code === 'LOGIN_REQUIRED'){ isLoggedIn = false; pendingAfterLogin = 'parse'; openLogin('登录后即可下载'); return; }
+                    showToast(payload.retdesc || '下载失败，请重新解析后再试', 'warning', 3500);
+                    return;
+                }
+            } catch { showToast('网络异常，请稍后再试', 'error'); return; }
+            let frame = document.getElementById('bundleFrame');
+            if(!frame){
+                frame = document.createElement('iframe');
+                frame.name = frame.id = 'bundleFrame';
+                frame.style.display = 'none';
+                document.body.appendChild(frame);
             }
+            const form = document.createElement('form');
+            form.method = 'POST'; form.action = '/api/download/bundle'; form.target = 'bundleFrame'; form.style.display = 'none';
+            for(const [k, v] of fields.entries()){
+                const field = document.createElement('input');
+                field.type = 'hidden'; field.name = k; field.value = v;
+                form.appendChild(field);
+            }
+            document.body.appendChild(form);
+            form.submit();
+            form.remove();
+            showToast(`正在打包 ${downloadItems.length} 个文件（含视频、音乐、图片），稍候会开始下载`, 'success', 3500);
         }
 
         function openLogin(title, sub){
@@ -1439,9 +1470,9 @@
             track.innerHTML = cards.map((html, i) => html.replace('<div class="res-card', `<div style="--i:${i}" class="res-card`)).join('');
             track.scrollLeft = 0;
             const dlAll = document.getElementById('dlAllBtn');
-            if(dlAll){ dlAll.hidden = downloadItems.length < 1; dlAll.lastChild.textContent = downloadItems.length > 1 ? `一键下载全部 (${downloadItems.length})` : '一键下载'; }
+            if(dlAll){ dlAll.hidden = downloadItems.length < 1; dlAll.lastChild.textContent = downloadItems.length > 1 ? `一键下载全部 (${downloadItems.length}) · zip` : '一键下载'; }
             document.getElementById('stageResultTitle').textContent = `${data.platform || '作品'} · ${authorName}`;
-            document.getElementById('stageResultMeta').textContent = downloadItems.length ? `解析完成 · ${downloadItems.length} 个文件可下载` : '解析完成';
+            document.getElementById('stageResultMeta').textContent = downloadItems.length ? `解析完成 · ${downloadItems.length} 个文件可下载${audio ? '（含背景音乐）' : ''}` : '解析完成';
             document.getElementById('globePinText').textContent = data.platform || '解析完成';
         }
 
