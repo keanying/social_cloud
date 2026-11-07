@@ -2,6 +2,9 @@
 {% macro icon(name, class_name='w-4 h-4') -%}
 <svg class="{{ class_name }}" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons.svg') }}#icon-{{ name }}"></use></svg>
 {%- endmacro %}
+{% macro ms(name, class_name='') -%}
+<svg class="ms {{ class_name }}" fill="currentColor" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons-ms.svg') }}#ms-{{ name }}"></use></svg>
+{%- endmacro %}
 <html lang="zh-CN" class="scroll-smooth">
 <head>
     <meta charset="utf-8">
@@ -32,9 +35,14 @@
                 <a href="#features">能保存什么</a>
                 <a href="#faq">常见问题</a>
             </nav>
-            <div class="flex items-center gap-1.5">
-                <a href="{{ url_for('auth.login') }}" class="btn btn-light">登录</a>
-                <a href="{{ url_for('auth.register') }}" class="btn btn-primary">注册</a>
+            <div id="navAuth" class="flex items-center gap-2">
+                {% if g.user %}
+                <a href="{{ url_for('admin.dashboard' if g.user['role'] == 'admin' else 'portal.dashboard') }}" class="btn btn-flat">{{ ms('space_dashboard') }}我的控制台</a>
+                <span class="nav-avatar" title="{{ g.user['username'] }}">{{ g.user['username'][0]|upper }}</span>
+                {% else %}
+                <button type="button" class="btn btn-light" onclick="openLogin()">登录</button>
+                {% if registration_enabled %}<a href="{{ url_for('auth.register') }}" class="btn btn-primary">注册</a>{% endif %}
+                {% endif %}
             </div>
         </div>
     </header>
@@ -51,7 +59,7 @@
                             <div id="globeChips" class="globe-chips">
                                 {% for name in globe_platforms %}<span class="globe-chip" style="--c:{{ palette.get(name, '#0b65ff') }}"><b>{{ name[0] }}</b>{{ name }}</span>{% endfor %}
                             </div>
-                            <div class="globe-pin"><i>✓</i><span id="globePinText">解析完成</span></div>
+                            <div class="globe-pin"><i>{{ ms('check') }}</i><span id="globePinText">解析完成</span></div>
                         </div>
                     </div>
 
@@ -61,9 +69,9 @@
                             <h1 class="stage-title mt-6">看到喜欢的内容<br>复制链接就能存下来</h1>
                             <p class="mt-5 text-[16.5px] leading-7 text-white/85">视频、图集、实况照片、背景音乐和文案，<br class="hidden sm:block">粘贴一条分享链接，一次帮你整理好。</p>
                             <ul class="hero-points">
-                                <li>{{ icon('check', 'w-3.5 h-3.5') }}不用下载 App</li>
-                                <li>{{ icon('check', 'w-3.5 h-3.5') }}整段分享文案也能识别</li>
-                                <li>{{ icon('check', 'w-3.5 h-3.5') }}尽量保持原画质</li>
+                                <li>{{ ms('check_circle-f') }}不用下载 App</li>
+                                <li>{{ ms('check_circle-f') }}整段分享文案也能识别</li>
+                                <li>{{ ms('check_circle-f') }}尽量保持原画质</li>
                             </ul>
                         </div>
 
@@ -82,7 +90,7 @@
                                 <span class="composer-hint"><span class="kbd">Ctrl</span><span class="kbd">Enter</span>快速解析</span>
                                 <div class="composer-actions">
                                     {% if parser_enabled %}
-                                    <button type="button" class="btn btn-light" onclick="pasteFromClipboard()">粘贴</button>
+                                    <button type="button" class="btn btn-light" onclick="pasteFromClipboard()">{{ ms('content_paste') }}粘贴</button>
                                     <button id="parseBtn" type="button" onclick="handleParse()" class="search-go">开始解析</button>
                                     {% else %}
                                     <button id="parseBtn" type="button" disabled class="search-go">维护中</button>
@@ -92,8 +100,8 @@
                         </div>
                         {% if parser_enabled %}
                         <div class="hero-links">
-                            <button type="button" onclick="fillSampleUrl()">{{ icon('lightbulb', 'w-3.5 h-3.5') }}没有链接？试试示例</button>
-                            <a href="#guide">{{ icon('book', 'w-3.5 h-3.5') }}怎么复制分享链接</a>
+                            <button type="button" onclick="fillSampleUrl()">{{ ms('lightbulb') }}没有链接？试试示例</button>
+                            <a href="#guide">{{ ms('help') }}怎么复制分享链接</a>
                         </div>
                         {% endif %}
 
@@ -125,9 +133,10 @@
                                     <h2 id="stageResultTitle" class="truncate">识别平台中</h2>
                                 </div>
                                 <div class="flex gap-2 shrink-0">
-                                    <button type="button" class="ghost-round" onclick="scrollResTrack(-1)" aria-label="上一组">←</button>
-                                    <button type="button" class="ghost-round" onclick="scrollResTrack(1)" aria-label="下一组">→</button>
-                                    <button type="button" class="ghost-round ghost-round--solid" onclick="resetStage()" title="解析新的链接" aria-label="解析新的链接">↺</button>
+                                    <button type="button" id="dlAllBtn" class="dl-all" onclick="downloadAll()" hidden>{{ ms('download') }}一键下载全部</button>
+                                    <button type="button" class="ghost-round" onclick="scrollResTrack(-1)" aria-label="上一组" title="上一组">{{ ms('chevron_left') }}</button>
+                                    <button type="button" class="ghost-round" onclick="scrollResTrack(1)" aria-label="下一组" title="下一组">{{ ms('chevron_right') }}</button>
+                                    <button type="button" class="ghost-round ghost-round--solid" onclick="resetStage()" title="解析新的链接" aria-label="解析新的链接">{{ ms('refresh') }}</button>
                                 </div>
                             </div>
                             <div id="resTrack" class="res-track"></div>
@@ -177,6 +186,7 @@
                         <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
                             <h4 class="text-sm font-semibold text-slate-900 flex items-center gap-2">{{ icon('video', 'w-4 h-4 text-slate-500') }} 视频文件预览 (<span id="videoCount">0</span>)</h4>
                             <div class="flex items-center gap-2">
+                                <button id="videoDownloadBtn" type="button" onclick="downloadCurrentVideo()" class="inline-flex items-center gap-1.5 rounded-lg bg-[#0b65ff] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#0052e0] transition shadow-sm" title="下载当前视频">{{ ms('download') }}下载</button>
                                 <a id="videoOpenDirectLink" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-300 hover:text-brand transition shadow-sm" title="在新窗口中打开当前视频">{{ icon('link', 'w-3.5 h-3.5') }}新窗口打开</a>
                                 <button type="button" onclick="copyCurrentVideoUrl()" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-300 hover:text-brand transition shadow-sm" title="复制当前视频直链">{{ icon('clipboard', 'w-3.5 h-3.5') }}复制直链</button>
                                 <button id="previousVideoBtn" type="button" onclick="stepVideo(-1)" class="hidden rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-300 hover:text-brand disabled:cursor-not-allowed disabled:opacity-40 transition">← 上一个</button>
@@ -295,7 +305,7 @@
         </section>
 
         <!-- 使用教程：三步 + 平台 Tabs -->
-        <section id="guide" class="sec wrap">
+        <section id="guide" class="sec wrap guide-demo">
             <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-5" data-reveal>
                 <div>
                     <span class="sec-kicker">使用教程</span>
@@ -316,10 +326,10 @@
                         <div class="text-[12px] text-slate-400" id="guideTitle">分享给朋友</div>
                         <div class="mock-sheet">
                             <div class="row">
-                                <div class="it"><span>{{ icon('users', 'w-4 h-4') }}</span>好友</div>
-                                <div class="it"><span>{{ icon('image', 'w-4 h-4') }}</span>朋友圈</div>
-                                <div class="it is-hit"><span>{{ icon('link', 'w-4 h-4') }}</span>复制链接</div>
-                                <div class="it"><span>{{ icon('tag', 'w-4 h-4') }}</span>更多</div>
+                                <div class="it"><span>{{ ms('chat_bubble') }}</span>好友</div>
+                                <div class="it"><span>{{ ms('public') }}</span>动态</div>
+                                <div class="it is-hit"><span>{{ ms('link') }}</span>复制链接</div>
+                                <div class="it"><span>{{ ms('more_horiz') }}</span>更多</div>
                             </div>
                         </div>
                     </div>
@@ -330,7 +340,7 @@
                     <p>链接和整段分享文案都可以，社媒云会自动找出链接、识别平台。</p>
                     <div class="mock">
                         <div class="mock-input"><span id="guidePaste">7.22 复制打开抖音，看看【阿木的作品】https://v.douyin.com/…</span><span class="caret"></span></div>
-                        <div class="mock-btn">开始解析</div>
+                        <div class="mock-btn" id="guideBtnMock">开始解析</div>
                     </div>
                 </article>
                 <article class="step" data-reveal style="--reveal-delay:.16s">
@@ -339,10 +349,10 @@
                     <p>视频、图集、实况照片、背景音乐分开展示，点开即可预览、复制链接或保存。</p>
                     <div class="mock">
                         <div class="mock-res">
-                            <div class="m v">视频<em>1080P · 00:32</em></div>
-                            <div class="m">图集<em>9 张</em></div>
-                            <div class="m t">背景音乐<em>原声</em></div>
-                            <div class="m">文案<em>可一键复制</em></div>
+                            <div class="m v is-on">视频{{ ms('download') }}<em>1080P · 00:32</em></div>
+                            <div class="m is-on">图集{{ ms('download') }}<em>9 张</em></div>
+                            <div class="m t is-on">背景音乐{{ ms('download') }}<em>原声</em></div>
+                            <div class="m is-on">文案{{ ms('content_copy') }}<em>可一键复制</em></div>
                         </div>
                     </div>
                 </article>
@@ -358,22 +368,35 @@
             </div>
             <div class="mt-8 grid lg:grid-cols-3 gap-4">
                 <article class="feat feat--brand lg:col-span-2" data-reveal>
-                    <h3>视频</h3>
-                    <p>尽量获取平台提供的最高清晰度；合集、多段视频会全部列出来，逐个预览。</p>
-                    <div class="player"><span class="q">1080P</span><span class="play"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg></span><span class="bar"><i></i></span></div>
+                    <h3>{{ ms('videocam') }}视频</h3>
+                    <p>尽量获取平台提供的最高清晰度；合集、多段视频会全部列出来，逐个预览，一键下载到本地。</p>
+                    <div class="player" style="background-image:url('{{ url_for('static', filename='images/mock/sunset.svg') }}')">
+                        <span class="meta"><i>木</i>阿木 · 海边日落延时</span>
+                        <span class="q">1080P</span>
+                        <span class="play">{{ ms('play_arrow-f', '!w-7 !h-7') }}</span>
+                        <span class="time">00:12 / 00:32</span>
+                        <span class="save">{{ ms('download') }}下载视频</span>
+                        <span class="bar"><i></i></span>
+                    </div>
                 </article>
                 <article class="feat" data-reveal style="--reveal-delay:.08s">
-                    <h3>图集与实况照片</h3>
+                    <h3>{{ ms('photo_library') }}图集与实况照片</h3>
                     <p>笔记里的每一张图都单独给出，实况照片连同动态视频一起保存。</p>
-                    <div class="gallery"><span></span><span class="live"></span><span></span></div>
+                    <div class="gallery">
+                        <span style="background-image:url('{{ url_for('static', filename='images/mock/mountain.svg') }}')"></span>
+                        <span class="live" style="background-image:url('{{ url_for('static', filename='images/mock/city.svg') }}')"></span>
+                        <span class="more" data-more="+6" style="background-image:url('{{ url_for('static', filename='images/mock/bloom.svg') }}')"></span>
+                    </div>
+                    <div class="gallery-foot"><span>共 9 张 · 含 1 张实况</span><b>{{ ms('download') }}全部保存</b></div>
                 </article>
                 <article class="feat feat--ink" data-reveal>
-                    <h3>背景音乐</h3>
+                    <h3>{{ ms('music_note') }}背景音乐</h3>
                     <p>喜欢视频里的配乐？单独提取音频，音乐平台的歌曲链接也能识别。</p>
+                    <div class="song"><span class="cover"></span><span class="t">海风 · 原声<em>阿木 · 00:32</em></span><span class="p">{{ ms('play_arrow-f') }}</span></div>
                     <div class="wave">{% for h in [40,70,55,90,62,35,80,58,95,45,72,50,85,38,66,52,78,44] %}<i style="--h:{{ h }}%;--d:{{ (loop.index0 * 0.09)|round(2) }}s"></i>{% endfor %}</div>
                 </article>
                 <article class="feat lg:col-span-2" data-reveal style="--reveal-delay:.08s">
-                    <h3>文案、字幕与作者</h3>
+                    <h3>{{ ms('subtitles') }}文案、字幕与作者</h3>
                     <p>作品标题、正文文案、平台自带字幕或歌词按时间轴整理，作者昵称和头像也一并给出。</p>
                     <div class="subs">
                         <div><code>00:00.6</code><span>海风吹过来的时候</span></div>
@@ -394,16 +417,39 @@
                     ('保存下来的视频是高清无水印的吗？', '社媒云会尽量获取平台当前提供的原始画质，不会再压缩一遍。不过清晰度和是否带水印取决于作品本身和平台的规则，个别作品可能只能拿到带水印或较低清晰度的版本。'),
                     ('解析失败了怎么办？', '先确认作品是公开可见的（私密、仅好友可见、已删除的作品无法解析），再检查复制的是不是完整的分享链接。平台偶尔调整规则会导致暂时失败，可以稍后再试。'),
                     ('为什么过一段时间链接就打不开了？', '视频和图片的地址由平台提供，通常带有时效，过期后就会失效。解析完成后请尽快预览和保存。'),
-                    ('需要注册吗？有次数限制吗？', '不注册也可以直接在首页解析，为防止滥用，同一网络每分钟最多解析 5 次。注册登录后可以在控制台查看自己的解析记录。'),
+                    ('需要注册吗？有次数限制吗？', ('解析和下载需要先登录，没有账号可以免费注册。' if login_required else '不登录也可以直接在首页解析，下载文件需要先登录。') ~ '为防止滥用，同一网络每分钟最多解析 5 次，下载链接在解析后 2 小时内有效。'),
                     ('可以保存别人的作品吗？', '请只保存你自己发布的、或已获得作者授权的内容，用于个人学习与收藏。转载、二次发布或商用前请先取得原作者许可，并遵守各平台的用户协议。')] %}
                 <details class="faq-item" data-reveal {{ 'open' if loop.first }}>
-                    <summary><span>{{ q }}</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></summary>
+                    <summary><span>{{ q }}</span>{{ ms('keyboard_arrow_down', 'chev') }}</summary>
                     <p>{{ a }}</p>
                 </details>
                 {% endfor %}
             </div>
         </section>
     </main>
+    <!-- 登录弹窗：点击解析 / 下载时未登录则弹出 -->
+    <div id="loginModal" class="lm" hidden>
+        <div class="lm-backdrop" onclick="closeLogin()"></div>
+        <form class="lm-card" id="loginForm" role="dialog" aria-modal="true" aria-labelledby="lmTitle" onsubmit="submitLogin(event)" novalidate>
+            <button type="button" class="lm-close" onclick="closeLogin()" aria-label="关闭">{{ ms('close') }}</button>
+            <span class="brand-tile"><img src="{{ url_for('static', filename='images/brand-logo.png') }}" alt=""></span>
+            <h3 id="lmTitle">登录后开始解析</h3>
+            <p class="lm-sub" id="lmSub">登录社媒云账号，解析和一键下载都在这里完成。</p>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="lm-field">用户名
+                <span class="lm-input">{{ ms('person') }}<input name="username" autocomplete="username" placeholder="请输入用户名" required></span>
+            </label>
+            <label class="lm-field">密码
+                <span class="lm-input">{{ ms('lock') }}<input name="password" type="password" autocomplete="current-password" placeholder="请输入密码" required><button type="button" onclick="togglePwd(this)" class="text-xs font-semibold" aria-label="显示密码">显示</button></span>
+            </label>
+            <div class="lm-row">
+                <label><input type="checkbox" name="remember_me" value="1" checked>保持 30 天登录</label>
+            </div>
+            <p class="lm-err" id="loginError" role="alert" hidden></p>
+            <button type="submit" class="lm-submit" id="loginSubmit">{{ ms('login') }}登录并继续</button>
+            {% if registration_enabled %}<p class="lm-foot">还没有账号？<a href="{{ url_for('auth.register') }}">免费注册</a></p>{% endif %}
+        </form>
+    </div>
     <div id="landingToastContainer" class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-2.5 pointer-events-none w-auto max-w-[90vw]"></div>
 
     <footer class="border-t border-[#e6eaf2] bg-white">
@@ -1205,11 +1251,124 @@
             clearParser();
             setStageState('idle');
         }
-        function mediaCard(url, tag, label, target){
-            return `<button type="button" class="res-card res-card--media" onclick="jumpTo('${target}')">`
+        /* ---- 图标、下载、登录 ---- */
+        const MS_SPRITE = "{{ url_for('static', filename='icons-ms.svg') }}";
+        const msIcon = (name, cls = '') => `<svg class="ms ${cls}" fill="currentColor" aria-hidden="true"><use href="${MS_SPRITE}#ms-${name}"></use></svg>`;
+        const LOGIN_REQUIRED = {{ 'true' if login_required else 'false' }};
+        let isLoggedIn = {{ 'true' if g.user else 'false' }};
+        let pendingAfterLogin = null;
+        let downloadItems = [];
+
+        function downloadHref(url, name){
+            return `/api/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`;
+        }
+        function fileBase(){
+            const d = lastParsedData || {};
+            const title = String(d.title || d.desc || '作品').replace(/\s+/g, ' ').replace(/#\S+/g, '').trim().slice(0, 24) || '作品';
+            return `${d.platform || '社媒云'}-${title}`;
+        }
+        async function downloadOne(index){
+            const item = downloadItems[index];
+            if(!item) return;
+            if(!isLoggedIn){ pendingAfterLogin = 'parse'; openLogin('登录后即可下载', '登录后会重新获取下载地址，再点一次下载即可。'); return; }
+            try {
+                const check = await fetch(downloadHref(item.url, item.name) + '&check=1', { headers: { 'X-Requested-With': 'fetch' } });
+                const payload = await check.json().catch(() => ({}));
+                if(!check.ok){
+                    if(payload.error_code === 'LOGIN_REQUIRED'){ isLoggedIn = false; pendingAfterLogin = 'parse'; openLogin('登录后即可下载'); return; }
+                    showToast(payload.retdesc || '下载失败，请重新解析后再试', 'warning', 3500);
+                    return;
+                }
+            } catch { showToast('网络异常，请稍后再试', 'error'); return; }
+            const frame = document.createElement('iframe');
+            frame.style.display = 'none';
+            frame.src = downloadHref(item.url, item.name);
+            document.body.appendChild(frame);
+            setTimeout(() => frame.remove(), 120000);
+            showToast(`开始下载：${item.name}`, 'success', 2200);
+        }
+        function downloadCurrentVideo(){
+            const url = currentVideoUrls[activeVideoIndex];
+            const idx = downloadItems.findIndex(item => item.url === url);
+            if(idx >= 0) downloadOne(idx);
+            else showToast('请重新解析后再下载', 'warning');
+        }
+        async function downloadAll(){
+            if(!downloadItems.length) return;
+            showToast(`即将下载 ${downloadItems.length} 个文件，浏览器提示时请选择「允许」`, 'success', 3500);
+            for(let i = 0; i < downloadItems.length; i++){
+                await downloadOne(i);
+                if(!isLoggedIn) return;
+                await new Promise(r => setTimeout(r, 900));
+            }
+        }
+
+        function openLogin(title, sub){
+            const modal = document.getElementById('loginModal');
+            if(!modal) return;
+            document.getElementById('lmTitle').textContent = title || '登录后开始解析';
+            document.getElementById('lmSub').textContent = sub || '登录社媒云账号，解析和一键下载都在这里完成。';
+            document.getElementById('loginError').hidden = true;
+            modal.hidden = false;
+            document.body.style.overflow = 'hidden';
+            if(window.__lenis) window.__lenis.stop();
+            setTimeout(() => modal.querySelector('input[name="username"]').focus(), 60);
+        }
+        function closeLogin(){
+            const modal = document.getElementById('loginModal');
+            if(!modal) return;
+            modal.hidden = true;
+            document.body.style.overflow = '';
+            if(window.__lenis) window.__lenis.start();
+        }
+        function togglePwd(btn){
+            const field = btn.parentElement.querySelector('input');
+            const show = field.type === 'password';
+            field.type = show ? 'text' : 'password';
+            btn.textContent = show ? '隐藏' : '显示';
+        }
+        async function submitLogin(event){
+            event.preventDefault();
+            const form = event.target;
+            const err = document.getElementById('loginError');
+            const btn = document.getElementById('loginSubmit');
+            if(!form.username.value.trim() || !form.password.value){
+                err.textContent = '请输入用户名和密码'; err.hidden = false; return;
+            }
+            btn.disabled = true; err.hidden = true;
+            try {
+                const res = await fetch('{{ url_for('auth.login') }}', { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'fetch' } });
+                const payload = await res.json().catch(() => ({}));
+                if(!res.ok || !payload.ok){
+                    err.textContent = payload.message || '登录失败，请稍后重试'; err.hidden = false; return;
+                }
+                isLoggedIn = true;
+                const initial = (payload.username || '?').charAt(0).toUpperCase();
+                document.getElementById('navAuth').innerHTML =
+                    `<a href="${payload.console}" class="btn btn-flat">${msIcon('space_dashboard')}我的控制台</a><span class="nav-avatar">${escapeHtml(initial)}</span>`;
+                closeLogin();
+                form.password.value = '';
+                showToast('登录成功', 'success', 1800);
+                const next = pendingAfterLogin; pendingAfterLogin = null;
+                if(next === 'parse' && input.value.trim()) handleParse();
+            } catch {
+                err.textContent = '网络异常，请稍后重试'; err.hidden = false;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeLogin(); });
+
+        function cardActions(target, dlIndex){
+            return `<span class="acts"><button type="button" class="act" onclick="jumpTo('${target}')" title="预览" aria-label="预览">${msIcon('arrow_outward')}</button>`
+                + (dlIndex !== undefined ? `<button type="button" class="act act--dl" onclick="downloadOne(${dlIndex})" title="下载" aria-label="下载">${msIcon('download')}</button>` : '')
+                + `</span>`;
+        }
+        function mediaCard(url, tag, label, target, dlIndex){
+            return `<div class="res-card res-card--media">`
                 + (url ? `<img class="bg" src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '')
                 + `<span class="tag">${escapeHtml(tag)}</span>`
-                + `<div class="flex items-end justify-between gap-2"><span class="text-sm font-bold leading-snug">${escapeHtml(label)}</span><span class="go">↗</span></div></button>`;
+                + `<div class="flex items-end justify-between gap-2"><span class="text-sm font-bold leading-snug">${escapeHtml(label)}</span>${cardActions(target, dlIndex)}</div></div>`;
         }
         function renderStageCards(data){
             const track = document.getElementById('resTrack');
@@ -1220,33 +1379,42 @@
             const videos = uniqueMediaUrls([data.video_url, ...(Array.isArray(data.video_list) ? data.video_list : [])]).filter(safeHttpUrl);
             const images = Array.isArray(data.image_list) ? data.image_list : [];
             const cover = safeHttpUrl(data.cover_url);
+            const audio = safeHttpUrl(data.audio_url);
             const subtitles = normalizeSubtitles(data.subtitles);
+            const base = fileBase();
             const cards = [];
+            downloadItems = [];
+            const addItem = (url, name) => { downloadItems.push({ url, name }); return downloadItems.length - 1; };
 
-            cards.push(`<button type="button" class="res-card res-card--ink" onclick="jumpTo('resultState')">`
+            cards.push(`<div class="res-card res-card--ink">`
                 + `<span class="tag">${escapeHtml(data.platform || '作品')}</span>`
                 + `<div><div class="flex items-center gap-2 mb-2">${avatar ? `<img class="res-avatar" src="${escapeHtml(avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}`
                 + `<span class="text-xs font-semibold opacity-80 truncate">${escapeHtml(authorName)}</span></div>`
-                + `<div class="ttl">${escapeHtml(data.title || '未获取到标题')}</div></div><span class="go">↗</span></button>`);
-            if(videos.length) cards.push(mediaCard(cover, `视频 · ${videos.length}`, videos.length > 1 ? `${videos.length} 段视频直链` : '视频直链', 'videoContainer'));
+                + `<div class="ttl">${escapeHtml(data.title || '未获取到标题')}</div></div>${cardActions('resultState')}</div>`);
+            videos.forEach((url, i) => {
+                const idx = addItem(url, videos.length > 1 ? `${base}-视频${i + 1}` : `${base}-视频`);
+                if(i < 4) cards.push(mediaCard(cover, videos.length > 1 ? `视频 ${i + 1}/${videos.length}` : '视频', '高清视频', 'videoContainer', idx));
+            });
             let imageCount = 0;
             images.forEach((img, i) => {
                 const url = safeHttpUrl(typeof img === 'string' ? img : img && img.url);
-                if(!url || imageCount >= 6) return;
-                imageCount++;
+                if(!url) return;
                 const live = img && typeof img === 'object' && safeHttpUrl(img.live_photo_url);
-                cards.push(mediaCard(url, live ? '实况' : `图 ${i + 1}/${images.length}`, live ? 'Live Photo' : '高清图片', 'imageContainer'));
+                const idx = addItem(url, `${base}-图${i + 1}`);
+                if(live) addItem(live, `${base}-实况${i + 1}`);
+                if(imageCount++ < 6) cards.push(mediaCard(url, live ? `实况 ${i + 1}/${images.length}` : `图 ${i + 1}/${images.length}`, live ? 'Live Photo' : '高清图片', 'imageContainer', idx));
             });
-            if(!videos.length && !imageCount && cover) cards.push(mediaCard(cover, '封面', '高清封面', 'imageContainer'));
-            if(safeHttpUrl(data.audio_url)) cards.push(`<button type="button" class="res-card res-card--teal" onclick="jumpTo('audioContainer')"><span class="tag">音频</span><div><div class="big">♪ 音频</div><div class="text-xs opacity-80 mt-1">背景音乐 / 独立音轨</div></div><span class="go">↗</span></button>`);
-            if(subtitles.length) cards.push(`<button type="button" class="res-card res-card--sky" onclick="jumpTo('subtitleContainer')"><span class="tag">字幕</span><div><div class="big">${subtitles.length} 条</div><div class="text-xs opacity-75 mt-1">字幕 / 歌词时间轴</div></div><span class="go">↗</span></button>`);
-            cards.push(`<button type="button" class="res-card res-card--plain" onclick="jumpTo('resultState')"><span class="tag" style="background:#eef4ff">详情</span><div><div class="big">完整结果</div><div class="text-xs text-slate-500 mt-1">视觉预览 · JSON 原始结构</div></div><span class="go">↓</span></button>`);
+            if(!videos.length && !imageCount && cover) cards.push(mediaCard(cover, '封面', '高清封面', 'imageContainer', addItem(cover, `${base}-封面`)));
+            if(audio) cards.push(`<div class="res-card res-card--teal"><span class="tag">音频</span><div><div class="big">${msIcon('music_note')} 背景音乐</div><div class="text-xs opacity-75 mt-1">原声 / 独立音轨</div></div>${cardActions('audioContainer', addItem(audio, `${base}-音频`))}</div>`);
+            if(subtitles.length) cards.push(`<div class="res-card res-card--sky"><span class="tag">字幕</span><div><div class="big">${subtitles.length} 条</div><div class="text-xs opacity-75 mt-1">字幕 / 歌词时间轴</div></div>${cardActions('subtitleContainer')}</div>`);
+            cards.push(`<div class="res-card res-card--plain"><span class="tag" style="background:#eef4ff">详情</span><div><div class="big">完整结果</div><div class="text-xs text-slate-500 mt-1">视觉预览 · 复制文案</div></div>${cardActions('resultState')}</div>`);
 
-            track.innerHTML = cards.map((html, i) => html.replace('<button type="button" class="res-card', `<button type="button" style="--i:${i}" class="res-card`)).join('');
+            track.innerHTML = cards.map((html, i) => html.replace('<div class="res-card', `<div style="--i:${i}" class="res-card`)).join('');
             track.scrollLeft = 0;
-            const resources = videos.length + imageCount + (safeHttpUrl(data.audio_url) ? 1 : 0);
+            const dlAll = document.getElementById('dlAllBtn');
+            if(dlAll){ dlAll.hidden = downloadItems.length < 1; dlAll.lastChild.textContent = downloadItems.length > 1 ? `一键下载全部 (${downloadItems.length})` : '一键下载'; }
             document.getElementById('stageResultTitle').textContent = `${data.platform || '作品'} · ${authorName}`;
-            document.getElementById('stageResultMeta').textContent = resources ? `解析完成 · ${resources} 项媒体资源` : '解析完成';
+            document.getElementById('stageResultMeta').textContent = downloadItems.length ? `解析完成 · ${downloadItems.length} 个文件可下载` : '解析完成';
             document.getElementById('globePinText').textContent = data.platform || '解析完成';
         }
 
@@ -1262,6 +1430,11 @@
                     displayError(formatUserErrorMessage({ error_code: 'INVALID_TEXT' }));
                     input.focus();
                 }
+                return;
+            }
+            if (LOGIN_REQUIRED && !isLoggedIn) {
+                pendingAfterLogin = 'parse';
+                openLogin();
                 return;
             }
 
@@ -1284,6 +1457,11 @@
                     renderResult(payload.data);
                     renderStageCards(payload.data);
                     setStageState('result');
+                } else if (payload.error_code === 'LOGIN_REQUIRED') {
+                    isLoggedIn = false;
+                    setStageState('idle');
+                    pendingAfterLogin = 'parse';
+                    openLogin();
                 } else {
                     setStageState('idle');
                     displayError(formatUserErrorMessage(payload));
@@ -1383,7 +1561,39 @@
                 document.getElementById('guideBtn').textContent = g.btn;
                 document.getElementById('guideTitle').textContent = g.title;
                 document.getElementById('guidePaste').textContent = g.paste;
+                runGuideDemo(g.paste);
             }));
+
+            /* 三步教程演示：自动输入分享文案 → 点击解析 → 结果依次出现，循环播放 */
+            const pasteEl = document.getElementById('guidePaste');
+            const btnEl = document.getElementById('guideBtnMock');
+            const tiles = Array.from(document.querySelectorAll('#guide .mock-res .m'));
+            let demoRun = 0, demoVisible = false;
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            async function runGuideDemo(text){
+                const run = ++demoRun;
+                text = text || pasteEl.textContent;
+                if (reduce) { pasteEl.textContent = text; tiles.forEach((t) => t.classList.add('is-on')); return; }
+                while (run === demoRun) {
+                    if (!demoVisible) { await sleep(400); continue; }
+                    tiles.forEach((t) => t.classList.remove('is-on'));
+                    btnEl.classList.remove('is-busy'); btnEl.textContent = '开始解析';
+                    pasteEl.textContent = '';
+                    await sleep(500);
+                    for (const ch of text) { if (run !== demoRun) return; pasteEl.textContent += ch; await sleep(26); }
+                    await sleep(450); if (run !== demoRun) return;
+                    btnEl.classList.add('is-busy'); btnEl.innerHTML = '<span class="spin"></span>解析中…';
+                    await sleep(1100); if (run !== demoRun) return;
+                    btnEl.classList.remove('is-busy'); btnEl.textContent = '解析完成';
+                    for (const t of tiles) { t.classList.add('is-on'); await sleep(170); }
+                    await sleep(3200);
+                }
+            }
+            if ('IntersectionObserver' in window && pasteEl) {
+                new IntersectionObserver((entries) => { demoVisible = entries[0].isIntersecting; }, { threshold: 0.3 })
+                    .observe(document.getElementById('guide'));
+                runGuideDemo(pasteEl.textContent);
+            }
 
             /* Lenis 惯性滚动 */
             window.addEventListener('DOMContentLoaded', () => {

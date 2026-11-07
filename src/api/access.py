@@ -167,6 +167,11 @@ def demo_enabled():
     return setting("demo_enabled", "1") == "1"
 
 
+def demo_login_required():
+    """首页在线解析是否需要先登录（后台「系统设置」可关闭）。"""
+    return setting("demo_login_required", "1") == "1"
+
+
 def record_request(access, platform, path, status_code, error_code, duration_ms):
     if (current_app and (current_app.testing or current_app.config.get("TESTING") or current_app.config.get("API_ONLY"))) or "unittest" in sys.modules or "pytest" in sys.modules:
         return

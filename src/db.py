@@ -67,6 +67,14 @@ CREATE TABLE IF NOT EXISTS rate_limit_buckets (
     count INTEGER NOT NULL,
     PRIMARY KEY(subject, bucket_second)
 );
+CREATE TABLE IF NOT EXISTS media_grants (
+    user_id INTEGER NOT NULL,
+    url TEXT NOT NULL,
+    platform TEXT,
+    expires_at REAL NOT NULL,
+    PRIMARY KEY(user_id, url)
+);
+CREATE INDEX IF NOT EXISTS idx_media_grants_expiry ON media_grants(expires_at);
 CREATE INDEX IF NOT EXISTS idx_logs_created_at ON request_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_logs_user_id ON request_logs(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_rate_limit_bucket_time ON rate_limit_buckets(bucket_second);
@@ -118,6 +126,7 @@ def init_db():
         "global_api_enabled": "1",
         "homepage_enabled": "1",
         "demo_enabled": "1",
+        "demo_login_required": "1",
         "registration_enabled": "1",
         "default_user_qps": "2",
         "default_trial_days": "365",

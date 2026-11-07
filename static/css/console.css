@@ -584,7 +584,11 @@ body.cs { background: #eef2f8; }
 .cs-rail a:hover::after, .cs-rail a:focus-visible::after { opacity: 1; transform: translate(0, -50%); }
 
 .cs-content { padding: 8px 32px 48px 120px; min-width: 0; flex: 1; }
-.cs-content > main { max-width: 1320px !important; }
+/* 宽屏：页头、图标栏、内容区收在同一个居中框架里，内容铺满框架，不再一侧留白 */
+.console-app { width: 100%; max-width: 1680px; margin: 0 auto; position: relative; }
+.cs-rail { left: max(28px, calc((100vw - 1680px) / 2 + 28px)); }
+.cs-content > main, .cs-content > main.container { max-width: none !important; width: 100%; margin-left: 0; margin-right: 0; }
+.cs-content .max-w-7xl { max-width: none; }
 .cs-crumb { display: flex; align-items: center; gap: 10px; margin: 6px 0 20px; font-size: 13px; color: #64748b; font-weight: 500; }
 
 /* ---- 皮肤层：把各页面原有的白色卡片统一为毛玻璃大圆角 ---- */

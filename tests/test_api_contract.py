@@ -5,6 +5,18 @@ from app import app
 from src.api.parse import _fetch_with_retry, safe_execute
 
 
+# 这些用例验证的是「免登录」的首页解析行为；登录要求另见 tests/test_login_required_parse.py
+_login_patch = patch("src.api.parse.demo_login_required", return_value=False)
+
+
+def setUpModule():
+    _login_patch.start()
+
+
+def tearDownModule():
+    _login_patch.stop()
+
+
 class ApiContractTest(unittest.TestCase):
     def setUp(self):
         app.testing = True

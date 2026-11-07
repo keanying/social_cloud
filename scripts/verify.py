@@ -66,10 +66,10 @@ CHECKS = [
      lambda s, t: None if s == 200 else f"HTTP {s}"),
     ("API 未带 Key 时拒绝", "GET", "/api/v1/parse?url=https://example.com", None,
      check_json(401, {"error_code": "API_KEY_REQUIRED", "succ": False})),
-    ("体验接口空文本校验", "POST", "/api/parse", {"text": ""},
-     check_json(400, {"error_code": "INVALID_TEXT", "succ": False})),
-    ("体验接口无链接校验", "POST", "/api/parse", {"text": "没有链接的文本"},
-     check_json(400, {"error_code": "URL_NOT_FOUND", "succ": False})),
+    ("首页解析未登录时要求登录", "POST", "/api/parse", {"text": "https://v.douyin.com/abc/"},
+     check_json(401, {"error_code": "LOGIN_REQUIRED", "succ": False})),
+    ("一键下载未登录时要求登录", "GET", "/api/download?url=https://example.com/a.mp4", None,
+     check_json(401, {"error_code": "LOGIN_REQUIRED", "succ": False})),
 ]
 
 

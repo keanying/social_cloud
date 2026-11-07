@@ -83,12 +83,26 @@
                         <div class="py-3.5 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
                             <div>
                                 <div class="font-medium text-slate-900">首页在线体验</div>
-                                <div class="text-xs text-slate-500 mt-0.5">允许访客在首页未登录状态下直接体验视频解析功能</div>
+                                <div class="text-xs text-slate-500 mt-0.5">开放首页的在线解析入口</div>
                             </div>
                             <div class="shrink-0">
                                 <label class="switch-toggle" title="切换首页在线体验状态">
                                     <input type="checkbox" name="demo_enabled" {{ 'checked' if
                                         settings.get('demo_enabled')=='1' }} onchange="triggerSettingsSubmit(this)">
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="py-3.5 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
+                            <div>
+                                <div class="font-medium text-slate-900">解析需先登录</div>
+                                <div class="text-xs text-slate-500 mt-0.5">开启后访客在首页点击解析会弹出登录框，登录后才能解析与一键下载</div>
+                            </div>
+                            <div class="shrink-0">
+                                <label class="switch-toggle" title="切换首页解析是否需要登录">
+                                    <input type="checkbox" name="demo_login_required" {{ 'checked' if
+                                        settings.get('demo_login_required', '1')=='1' }} onchange="triggerSettingsSubmit(this)">
                                     <span class="switch-slider"></span>
                                 </label>
                             </div>
@@ -694,6 +708,9 @@
         }
         if (name === 'demo_enabled') {
             return el.checked ? '已开启首页在线解析体验' : '已关闭首页在线解析体验';
+        }
+        if (name === 'demo_login_required') {
+            return el.checked ? '首页解析已改为登录后使用' : '首页解析已允许免登录使用';
         }
         if (name === 'registration_enabled' || el.id === 'registration-toggle') {
             return el.checked ? '已开放用户自主注册' : '已关闭用户自主注册';

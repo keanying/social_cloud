@@ -119,7 +119,7 @@ def settings():
 @csrf_protected
 def update_settings():
     db = get_db()
-    for name in ("global_api_enabled", "homepage_enabled", "demo_enabled", "registration_enabled", "api_tip_enabled"):
+    for name in ("global_api_enabled", "homepage_enabled", "demo_enabled", "demo_login_required", "registration_enabled", "api_tip_enabled"):
         set_setting(name, "1" if request.form.get(name) else "0")
     set_setting("default_user_qps", _positive_int(request.form.get("default_user_qps"), 2))
 
