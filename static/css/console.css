@@ -808,3 +808,15 @@ html:has(body.cs)::-webkit-scrollbar { display: none; }
 /* 兼容不支持 :has() 的旧浏览器 */
 html.cs-root { scrollbar-width: none; -ms-overflow-style: none; }
 html.cs-root::-webkit-scrollbar, html.cs-root body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* 浏览器自动填充：统一为白底，避免 Chrome 淡蓝底与圆角输入框不一致 */
+body.cs input:-webkit-autofill,
+body.cs input:-webkit-autofill:hover,
+body.cs input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  box-shadow: 0 0 0 1000px #fff inset;
+  -webkit-text-fill-color: #0e1525;
+  caret-color: #0e1525;
+  transition: background-color 99999s ease 0s;
+}
+body.cs input:autofill { filter: none; }
