@@ -1,0 +1,296 @@
+import unittest
+from unittest.mock import Mock, patch
+
+from src.parsers.jimeng_parser import JimengParser
+from utils.web_fetcher import UrlParser
+
+
+class JimengParserTest(unittest.TestCase):
+    def test_maps_official_api_response(self):
+        response = Mock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {
+            "ret": "0",
+            "data": {
+                "common_attr": {
+                    "description": "测试即梦作品",
+                    "published_item_id": "1234567890123456",
+                    "cover_url_map": {
+                        "1080": "https://image.example.com/1080.jpg",
+                        "4096": "https://image.example.com/4096.jpg",
+                    },
+                },
+                "author": {
+                    "name": "测试作者",
+                    "uid": "author123",
+                    "avatar_url": "https://image.example.com/avatar.jpg",
+                },
+                "video": {
+                    "origin_video": {
+                        "video_url": "https://video.example.com/origin.mp4",
+                    },
+                    "transcoded_video": {
+                        "720p": {
+                            "video_url": "https://video.example.com/720.mp4",
+                            "width": 1280,
+                            "height": 720,
+                        },
+                    },
+                },
+            },
+        }
+        url = "https://jimeng.jianying.com/detail/1234567890123456"
+
+        with patch("requests.Session.post", return_value=response) as post:
+            parser = JimengParser(url)
+
+        self.assertIsNone(parser.get_title_content())
+        self.assertEqual(parser.get_description(), "测试即梦作品")
+        self.assertEqual(parser.get_real_video_url(), "https://video.example.com/origin.mp4")
+        self.assertEqual(
+            parser.get_video_list(),
+            ["https://video.example.com/origin.mp4", "https://video.example.com/720.mp4"],
+        )
+        self.assertEqual(parser.get_cover_photo_url(), "https://image.example.com/4096.jpg")
+        self.assertEqual(parser.get_author_info()["nickname"], "测试作者")
+        self.assertEqual(
+            post.call_args.kwargs["json"]["published_item_id"],
+            "1234567890123456",
+        )
+
+    def test_url_parser_preserves_item_id(self):
+        url = (
+            "https://jimeng.jianying.com/activities/reflux/mproject"
+            "?id=1234567890123456&share_token=token123&ignored_param=1"
+        )
+
+        normalized = UrlParser.extract_video_address(url)
+
+        self.assertIn("id=1234567890123456", normalized)
+        self.assertIn("share_token=token123", normalized)
+        self.assertNotIn("ignored_param", normalized)
+        self.assertEqual(UrlParser.get_video_id(normalized), "1234567890123456")
+
+    def test_reflux_link_uses_campaign_api(self):
+        campaign_response = Mock()
+        campaign_response.raise_for_status.return_value = None
+        campaign_response.json.return_value = {
+            "err_no": 0,
+            "data": {
+                "page_info": {
+                    "creation": {
+                        "prompt": "AI生成视频",
+                        "metadata": {
+                            "video_url": "https://video.example.com/reflux.mp4",
+                            "cover_url": "https://img.example.com/reflux_cover.jpg",
+                        },
+                        "author": {"name": "AI创作者", "uid": "user789"},
+                    }
+                }
+            },
+        }
+
+        url = "https://jimeng.jianying.com/activities/reflux/mproject?id=7683715084807376153&search_keyword=TEST"
+        with patch("requests.Session.post", return_value=campaign_response) as post:
+            parser = JimengParser(url)
+
+        self.assertEqual(parser.get_real_video_url(), "https://video.example.com/reflux.mp4")
+        self.assertEqual(parser.get_cover_photo_url(), "https://img.example.com/reflux_cover.jpg")
+        self.assertEqual(parser.get_title_content(), "AI生成视频")
+        self.assertEqual(parser.get_author_info()["nickname"], "AI创作者")
+        self.assertEqual(post.call_args.kwargs["headers"]["appid"], "581595")
+
+    def test_campaign_api_prefers_watermark_ending_url(self):
+        campaign_response = Mock()
+        campaign_response.raise_for_status.return_value = None
+        campaign_response.json.return_value = {
+            "err_no": 0,
+            "data": {
+                "page_info": {
+                    "creation": {
+                        "prompt": "AI高清视频",
+                        "metadata": {
+                            "video_url": "https://video.example.com/watermark_corner.mp4",
+                            "download_info": {
+                                "watermark_ending_url": "https://video.example.com/watermark_ending.mp4",
+                                "url": "https://video.example.com/download.mp4",
+                            },
+                            "cover_url": "https://img.example.com/cover.jpg",
+                        },
+                        "author": {"name": "作者", "uid": "123"},
+                    }
+                }
+            },
+        }
+
+        url = "https://jimeng.jianying.com/activities/reflux/mproject?id=7683715084807376153"
+        with patch("requests.Session.post", return_value=campaign_response):
+            parser = JimengParser(url)
+
+        # 验证优先提取无主体常驻角标的 watermark_ending_url
+        self.assertEqual(parser.get_real_video_url(), "https://video.example.com/watermark_ending.mp4")
+        self.assertEqual(
+            parser.get_video_list(),
+            [
+                "https://video.example.com/watermark_ending.mp4",
+                "https://video.example.com/watermark_corner.mp4",
+                "https://video.example.com/download.mp4",
+            ]
+        )
+
+    def test_short_link_can_resolve_inside_parser(self):
+        redirect_response = Mock(
+            url="https://jimeng.jianying.com/detail/1234567890123456"
+        )
+        redirect_response.raise_for_status.return_value = None
+        api_response = Mock()
+        api_response.raise_for_status.return_value = None
+        api_response.json.return_value = {
+            "ret": "0",
+            "data": {
+                "common_attr": {},
+                "author": {},
+                "video": {},
+            },
+        }
+
+        with patch("requests.Session.get", return_value=redirect_response) as get:
+            with patch("requests.Session.post", return_value=api_response) as post:
+                JimengParser("https://jimeng.jianying.com/s/example/")
+
+        get.assert_called_once()
+        self.assertEqual(
+            post.call_args.kwargs["json"]["published_item_id"],
+            "1234567890123456",
+        )
+
+    def test_missing_item_id_does_not_call_api(self):
+        redirect_response = Mock(
+            url="https://jimeng.jianying.com/detail/",
+            text=""
+        )
+        redirect_response.raise_for_status.return_value = None
+        with patch("requests.Session.get", return_value=redirect_response):
+            with patch("requests.Session.post") as post:
+                parser = JimengParser("https://jimeng.jianying.com/detail/")
+
+        post.assert_not_called()
+        self.assertIsNone(parser.get_real_video_url())
+        self.assertEqual(parser.get_video_list(), [])
+
+    def test_uses_highest_resolution_transcoded_video_as_fallback(self):
+        formatted = JimengParser._format_data({
+            "common_attr": {},
+            "author": {},
+            "video": {
+                "transcoded_video": {
+                    "small": {
+                        "video_url": "https://video.example.com/small.mp4",
+                        "width": 640,
+                        "height": 360,
+                    },
+                    "large": {
+                        "video_url": "https://video.example.com/large.mp4",
+                        "width": 1920,
+                        "height": 1080,
+                    },
+                }
+            },
+        })
+
+        self.assertEqual(formatted["video_url"], "https://video.example.com/large.mp4")
+        self.assertIn("https://video.example.com/large.mp4", formatted["video_list"])
+        self.assertIn("https://video.example.com/small.mp4", formatted["video_list"])
+
+    def test_short_link_extracts_id_from_html_content(self):
+        page_response = Mock(
+            url="https://jimeng.jianying.com/s/Mx2zJtLMG9A/?t=210",
+            text='<html><script>window.__INITIAL_DATA__ = {"published_item_id": "7412345678901234567"};</script></html>'
+        )
+        page_response.raise_for_status.return_value = None
+        api_response = Mock()
+        api_response.raise_for_status.return_value = None
+        api_response.json.return_value = {
+            "ret": "0",
+            "data": {
+                "common_attr": {"title": "即梦AI生图", "cover_url": "https://img.example.com/cover.jpg"},
+                "author": {"name": "AI创作者"},
+                "image_infos": [
+                    {"image_url": "https://img.example.com/art1.jpg"},
+                    {"image_url": "https://img.example.com/art2.jpg"}
+                ]
+            },
+        }
+
+        with patch("requests.Session.get", return_value=page_response) as get:
+            with patch("requests.Session.post", return_value=api_response) as post:
+                parser = JimengParser("https://jimeng.jianying.com/s/Mx2zJtLMG9A/?t=210")
+
+        self.assertEqual(post.call_args.kwargs["json"]["published_item_id"], "7412345678901234567")
+        self.assertEqual(parser.get_image_list(), ["https://img.example.com/art1.jpg", "https://img.example.com/art2.jpg"])
+        self.assertEqual(parser.get_title_content(), "即梦AI生图")
+
+    def test_campaign_fallback_when_item_not_found(self):
+        get_item_fail = Mock()
+        get_item_fail.raise_for_status.return_value = None
+        get_item_fail.json.return_value = {
+            "ret": "2032",
+            "errmsg": "itemId not exist",
+        }
+
+        campaign_succ = Mock()
+        campaign_succ.raise_for_status.return_value = None
+        campaign_succ.json.return_value = {
+            "err_no": 0,
+            "data": {
+                "page_info": {
+                    "creation": {
+                        "prompt": "降级成功视频",
+                        "metadata": {
+                            "video_url": "https://video.example.com/fallback.mp4",
+                        },
+                        "author": {"name": "官方作者"}
+                    }
+                }
+            }
+        }
+
+        redirect_response = Mock(
+            url="https://jimeng.jianying.com/activities/reflux/mproject?id=7683715084807376153",
+            text=""
+        )
+        redirect_response.raise_for_status.return_value = None
+
+        with patch("requests.Session.get", return_value=redirect_response):
+            with patch("requests.Session.post", side_effect=[get_item_fail, campaign_succ]) as post:
+                parser = JimengParser("https://jimeng.jianying.com/s/fallback_link")
+
+        self.assertEqual(parser.get_real_video_url(), "https://video.example.com/fallback.mp4")
+        self.assertEqual(parser.get_title_content(), "降级成功视频")
+        self.assertEqual(parser.get_author_info()["nickname"], "官方作者")
+
+    def test_sanitize_video_url_strips_all_watermarks(self):
+        cases = [
+            (
+                "https://v3.jimeng.com/v?a=4066&lr=display_watermark_ending&cd=0%7C0%7C1%7C0&cv=1",
+                "https://v3.jimeng.com/v?a=4066&cd=0%7C0%7C0%7C0&cv=1",
+            ),
+            (
+                "https://v3.jimeng.com/v?a=4066&cd=0|0|1|3&cv=1",
+                "https://v3.jimeng.com/v?a=4066&cd=0|0|0|3&cv=1",
+            ),
+            (
+                "https://v3.jimeng.com/v?a=4066&cd=0%7C0%7C1%7C3&cv=1",
+                "https://v3.jimeng.com/v?a=4066&cd=0%7C0%7C0%7C3&cv=1",
+            ),
+            (
+                "https://v3.jimeng.com/v?a=4066&cd=0%7C0%7C1%7C4&lr=display_watermark_ending",
+                "https://v3.jimeng.com/v?a=4066&cd=0%7C0%7C0%7C4",
+            ),
+        ]
+        for raw, expected in cases:
+            self.assertEqual(JimengParser._sanitize_video_url(raw), expected)
+
+
+if __name__ == "__main__":
+    unittest.main()
