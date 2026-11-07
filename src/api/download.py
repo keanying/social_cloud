@@ -199,8 +199,9 @@ def _serve(inline):
 
     content_type = upstream.headers.get("Content-Type") or "application/octet-stream"
     if inline and not content_type.lower().startswith(_INLINE_TYPES):
-        # 部分 CDN 统一返回 octet-stream：按扩展名推断媒体类型，推断不出则保持二进制流
-        guessed = mimetypes.guess_type(urlparse(url).path)[0] or ""
+        # 部分 CDN 对媒体统一返回 octet-stream：仅此时按扩展名推断；其他类型（如 text/html）一律按二进制流返回
+        base_type = content_type.split(";")[0].strip().lower()
+        guessed = mimetypes.guess_type(urlparse(url).path)[0] or "" if base_type in ("application/octet-stream", "binary/octet-stream") else ""
         content_type = guessed if guessed.startswith(_INLINE_TYPES) else "application/octet-stream"
 
     def generate():

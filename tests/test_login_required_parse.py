@@ -193,6 +193,16 @@ class LoginRequiredParseTest(unittest.TestCase):
         self.assertEqual(upstream.call_args.kwargs["headers"]["Range"], "bytes=0-3")
         self.assertIn("sandbox", response.headers["Content-Security-Policy"])
 
+    def test_media_guesses_type_for_generic_binary(self):
+        self.login()
+        self.parse()
+        binary = FakeUpstream(body=b"mp4", headers={"Content-Type": "application/octet-stream"})
+        with patch("src.api.download.socket.getaddrinfo", return_value=PUBLIC_ADDRINFO), \
+                patch("src.api.download.requests.Session.get", return_value=binary):
+            response = self.client.get("/api/media", query_string={"url": VIDEO_URL})
+            response.get_data()
+        self.assertEqual(response.mimetype, "video/mp4")
+
     def test_media_never_serves_html_inline(self):
         self.login()
         self.parse()
@@ -200,6 +210,7 @@ class LoginRequiredParseTest(unittest.TestCase):
         with patch("src.api.download.socket.getaddrinfo", return_value=PUBLIC_ADDRINFO), \
                 patch("src.api.download.requests.Session.get", return_value=html):
             response = self.client.get("/api/media", query_string={"url": VIDEO_URL})
+            response.get_data()  # 读完流式响应，释放请求上下文，避免影响后续用例
         self.assertEqual(response.mimetype, "application/octet-stream")
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
 
