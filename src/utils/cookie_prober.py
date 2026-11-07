@@ -139,9 +139,11 @@ def probe_platform(platform_key, force=False):
                 "duration_ms": 0}
 
     with _probe_lock:
-        last = _last_probe_at.get(platform_key, 0)
-        elapsed = time.monotonic() - last
-        if not force and elapsed < PROBE_DEBOUNCE_SECONDS:
+        # 未探测过的平台不能用 0 作默认值：monotonic() 的起点是开机时间，
+        # 刚启动的机器上 monotonic() 可能小于防抖窗口，会被误判为“刚探过”
+        last = _last_probe_at.get(platform_key)
+        recently_probed = last is not None and time.monotonic() - last < PROBE_DEBOUNCE_SECONDS
+        if not force and recently_probed:
             return {"status": "debounced",
                     "detail": {"error": f"距上次探针不足 {PROBE_DEBOUNCE_SECONDS // 60} 分钟，已跳过（防风控）"},
                     "duration_ms": 0}

@@ -13,4 +13,6 @@ lxml==6.1.0
 mini-racer==0.12.4
 pycryptodome==3.20.0
 python-dotenv==1.2.2
+# Windows 没有系统时区库，zoneinfo 需要 tzdata 才能识别 Asia/Shanghai
+tzdata>=2024.1; sys_platform == "win32"
 
