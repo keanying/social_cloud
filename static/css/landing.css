@@ -443,3 +443,7 @@ body.lp { background: var(--bg); color: var(--ink); }
 @keyframes sysPing { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.2); opacity: 0; } }
 @media (max-width: 640px) { .sys { right: 14px; bottom: 14px; } .sys-panel { width: min(300px, calc(100vw - 28px)); } }
 @media (prefers-reduced-motion: reduce) { .sys-gear, .sys-dot::after { animation: none !important; } }
+
+/* 隐藏浏览器滚动条（滚轮、触控板、键盘照常滚动），与控制台保持一致 */
+html { scrollbar-width: none; -ms-overflow-style: none; }
+html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none; }

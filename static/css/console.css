@@ -805,3 +805,6 @@ html.cs-fit .table-wrap::-webkit-scrollbar-thumb { background: rgba(28, 31, 35, 
 /* 其余长内容页：照常滚动，但隐藏浏览器滚动条 */
 html:has(body.cs) { scrollbar-width: none; }
 html:has(body.cs)::-webkit-scrollbar { display: none; }
+/* 兼容不支持 :has() 的旧浏览器 */
+html.cs-root { scrollbar-width: none; -ms-overflow-style: none; }
+html.cs-root::-webkit-scrollbar, html.cs-root body::-webkit-scrollbar { width: 0; height: 0; display: none; }
