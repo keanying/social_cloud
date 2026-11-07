@@ -2,6 +2,9 @@
 {% macro icon(name, class_name='w-4 h-4') -%}
 <svg class="app-icon inline-block {{ class_name }}" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons.svg') }}#icon-{{ name }}"></use></svg>
 {%- endmacro %}
+{% macro ms(name, class_name='w-[18px] h-[18px]') -%}
+<svg class="inline-block {{ class_name }}" fill="currentColor" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons-ms.svg') }}#ms-{{ name }}"></use></svg>
+{%- endmacro %}
 <html lang="zh-CN" class="h-full">
 <head>
     <meta charset="utf-8">
@@ -46,21 +49,21 @@
 {% set is_admin = g.user['role'] == 'admin' %}
 {% if is_admin %}
 {% set nav_items = [
-    ('overview', 'admin.overview', 'chart', '概览', '系统管理'),
+    ('overview', 'admin.overview', 'space_dashboard', '概览', '系统管理'),
     ('settings', 'admin.settings', 'settings', '系统设置', '系统管理'),
-    ('users', 'admin.users', 'users', '客户账号', '业务管理'),
+    ('users', 'admin.users', 'group', '客户账号', '业务管理'),
     ('keys', 'admin.keys', 'key', 'API 密钥', '业务管理'),
-    ('platforms', 'admin.platforms', 'globe', '支持平台', '业务管理'),
-    ('cookies', 'admin.cookies', 'shield', '凭据巡检', '业务管理'),
-    ('logs', 'admin.logs', 'scroll', '运行日志', '运维监控'),
-    ('docs', 'admin.docs', 'book', '开发者文档', '参考文档')] %}
+    ('platforms', 'admin.platforms', 'public', '支持平台', '业务管理'),
+    ('cookies', 'admin.cookies', 'verified_user', '凭据巡检', '业务管理'),
+    ('logs', 'admin.logs', 'receipt_long', '运行日志', '运维监控'),
+    ('docs', 'admin.docs', 'menu_book', '开发者文档', '参考文档')] %}
 {% else %}
 {% set nav_items = [
-    ('overview', 'portal.overview', 'chart', '概览', '概览与统计'),
-    ('logs', 'portal.logs', 'scroll', '请求日志', '概览与统计'),
+    ('overview', 'portal.overview', 'space_dashboard', '概览', '概览与统计'),
+    ('logs', 'portal.logs', 'receipt_long', '请求日志', '概览与统计'),
     ('keys', 'portal.keys', 'key', 'API 密钥', '开发者中心'),
-    ('platforms', 'portal.platforms', 'globe', '支持平台', '开发者中心'),
-    ('docs', 'portal.docs', 'book', '开发者文档', '开发者中心')] %}
+    ('platforms', 'portal.platforms', 'public', '支持平台', '开发者中心'),
+    ('docs', 'portal.docs', 'menu_book', '开发者文档', '开发者中心')] %}
 {% endif %}
 <div class="console-app min-h-screen">
     <!-- 顶部浮动气泡卡片提示容器 (Toast Notification) -->
@@ -108,16 +111,13 @@
                 <span class="status-dot w-2 h-2 rounded-full bg-amber-500"></span>API 维护中
             </span>
             {% endif %}
-            <button type="button" class="cs-round" onclick="openChangePasswordModal()" title="修改密码" aria-label="修改密码">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <button type="button" class="cs-round" onclick="openChangePasswordModal()" title="修改密码" aria-label="修改密码">{{ ms('lock') }}
             </button>
-            <a class="cs-round" href="{{ url_for('web.index') }}" target="_blank" title="打开首页" aria-label="打开首页">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            <a class="cs-round" href="{{ url_for('web.index') }}" target="_blank" title="打开首页" aria-label="打开首页">{{ ms('open_in_new') }}
             </a>
             <form method="post" action="{{ url_for('auth.logout') }}" class="m-0 flex">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="cs-round logout-icon-btn hover:!text-rose-600" title="退出登录" aria-label="退出登录">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <button type="submit" class="cs-round logout-icon-btn hover:!text-rose-600" title="退出登录" aria-label="退出登录">{{ ms('logout') }}
                 </button>
             </form>
             <span class="cs-avatar" title="{{ g.user['username'] }} · {{ '超级管理员' if is_admin else '客户账号' }}">
@@ -129,15 +129,14 @@
     <!-- 左侧悬浮图标栏 -->
     <nav class="cs-rail" aria-label="快捷导航">
         {% for key, endpoint, ic, label, group in nav_items %}
-        <a href="{{ url_for(endpoint) }}" class="{{ 'is-active' if active_nav == key }}" data-tip="{{ label }}" aria-label="{{ label }}">{{ icon(ic, 'w-[18px] h-[18px]') }}</a>
+        <a href="{{ url_for(endpoint) }}" class="{{ 'is-active' if active_nav == key }}" data-tip="{{ label }}" aria-label="{{ label }}">{{ ms(ic, 'w-5 h-5') }}</a>
         {% endfor %}
     </nav>
 
     <!-- 主工作区 -->
     <div class="cs-content">
         <nav class="cs-crumb" aria-label="Breadcrumb">
-            <a href="{{ url_for(nav_items[0][1]) }}" class="cs-round !w-9 !h-9" aria-label="返回概览" title="返回概览">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <a href="{{ url_for(nav_items[0][1]) }}" class="cs-round !w-9 !h-9" aria-label="返回概览" title="返回概览">{{ ms('arrow_back') }}
             </a>
             <span>{{ '管理后台' if is_admin else '控制台' }}</span>
             <span class="text-slate-300">/</span>

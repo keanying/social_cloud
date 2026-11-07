@@ -66,12 +66,12 @@
                         <a href="{{ url_for('portal.overview', days=d) }}" class="{{ 'is-active' if current_days == d }}">{{ label }}</a>
                         {% endfor %}
                     </nav>
-                    <a href="{{ url_for('portal.logs') }}" class="cs-icon-btn" title="查看请求日志" aria-label="查看请求日志">↗</a>
+                    <a href="{{ url_for('portal.logs') }}" class="cs-icon-btn" title="查看请求日志" aria-label="查看请求日志">{{ ms('arrow_outward') }}</a>
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div class="cs-tile cs-tile--blue">
-                    <span class="dots" aria-hidden="true">···</span>
+                    <span class="dots" aria-hidden="true">{{ ms('more_horiz') }}</span>
                     <div><div class="k">近 24 小时</div><div class="t">接口调用</div></div>
                     <div class="flex items-end justify-between gap-2">
                         <span class="big">{{ calls }}</span>
@@ -79,17 +79,17 @@
                     </div>
                 </div>
                 <div class="cs-tile cs-tile--teal">
-                    <span class="dots" aria-hidden="true">···</span>
+                    <span class="dots" aria-hidden="true">{{ ms('more_horiz') }}</span>
                     <div><div class="k">近 24 小时</div><div class="t">成功解析</div></div>
                     <div class="flex items-end justify-between gap-2"><span class="big">{{ succ }}</span><span class="text-xs font-semibold opacity-80">{{ (rate ~ '%') if rate is not none else '暂无数据' }}</span></div>
                 </div>
                 <a href="{{ url_for('portal.keys') }}" class="cs-tile cs-tile--ink">
-                    <span class="dots" aria-hidden="true">↗</span>
+                    <span class="dots" aria-hidden="true">{{ ms('arrow_outward') }}</span>
                     <div><div class="k">{{ period }}</div><div class="t">最常用密钥</div></div>
                     <div class="flex items-end justify-between gap-2"><span class="big truncate">{{ top_keys[0]['calls'] if top_keys else 0 }}</span><span class="text-xs font-semibold opacity-70 truncate">{{ top_keys[0]['name'] if top_keys and top_keys[0]['name'] else '管理 API 密钥' }}</span></div>
                 </a>
                 <div class="cs-tile cs-tile--sun">
-                    <span class="dots" aria-hidden="true">···</span>
+                    <span class="dots" aria-hidden="true">{{ ms('more_horiz') }}</span>
                     <div><div class="k">{{ period }}</div><div class="t">最常解析平台</div></div>
                     <div class="flex items-end justify-between gap-2"><span class="big">{{ hot['platform'] if hot else '—' }}</span><span class="text-xs font-semibold opacity-70">{{ (hot['percentage'] ~ '%') if hot else '' }}</span></div>
                 </div>

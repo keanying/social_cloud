@@ -56,12 +56,12 @@
                         <a href="{{ url_for('admin.overview', days=d) }}" class="{{ 'is-active' if current_days == d }}">{{ label }}</a>
                         {% endfor %}
                     </nav>
-                    <a href="{{ url_for('admin.logs') }}" class="cs-icon-btn" title="查看运行日志" aria-label="查看运行日志">↗</a>
+                    <a href="{{ url_for('admin.logs') }}" class="cs-icon-btn" title="查看运行日志" aria-label="查看运行日志">{{ ms('arrow_outward') }}</a>
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div class="cs-tile cs-tile--blue">
-                    <span class="dots" aria-hidden="true">···</span>
+                    <span class="dots" aria-hidden="true">{{ ms('more_horiz') }}</span>
                     <div><div class="k">近 24 小时</div><div class="t">总调用<br>接口请求</div></div>
                     <div class="flex items-end justify-between gap-2">
                         <span class="big">{{ calls }}</span>
@@ -69,27 +69,27 @@
                     </div>
                 </div>
                 <div class="cs-tile cs-tile--teal">
-                    <span class="dots" aria-hidden="true">···</span>
+                    <span class="dots" aria-hidden="true">{{ ms('more_horiz') }}</span>
                     <div><div class="k">近 24 小时</div><div class="t">成功调用<br>有效完成媒体直链解析</div></div>
                     <div class="flex items-end justify-between gap-2"><span class="big">{{ succ }}</span><span class="text-xs font-semibold opacity-80">{{ (rate ~ '%') if rate is not none else '暂无数据' }}</span></div>
                 </div>
                 <a href="{{ url_for('admin.logs') }}" class="cs-tile cs-tile--ink">
-                    <span class="dots" aria-hidden="true">↗</span>
+                    <span class="dots" aria-hidden="true">{{ ms('arrow_outward') }}</span>
                     <div><div class="k">近 24 小时</div><div class="t">失败请求<br>点击查看运行日志</div></div>
                     <div class="flex items-end justify-between gap-2"><span class="big">{{ fails }}</span><span class="text-xs font-semibold opacity-70">{{ '需要关注' if fails else '运行良好' }}</span></div>
                 </a>
                 <div class="cs-tile cs-tile--sun">
-                    <span class="dots" aria-hidden="true">···</span>
+                    <span class="dots" aria-hidden="true">{{ ms('more_horiz') }}</span>
                     <div><div class="k">{{ period }}</div><div class="t">解析总量<br>全平台累计</div></div>
                     <div class="flex items-end justify-between gap-2"><span class="big">{{ pie_data['total_calls_formatted'] or pie_data['total_calls'] }}</span><span class="text-xs font-semibold opacity-70">{{ pie_data['items']|length }} 个平台</span></div>
                 </div>
                 <div class="cs-tile">
-                    <span class="dots" aria-hidden="true">···</span>
+                    <span class="dots" aria-hidden="true">{{ ms('more_horiz') }}</span>
                     <div><div class="k">{{ period }}</div><div class="t">最热平台<br>{{ ('占比 ' ~ hot['percentage'] ~ '%') if hot else '暂无调用记录' }}</div></div>
                     <div class="flex items-end justify-between gap-2"><span class="big">{{ hot['platform'] if hot else '—' }}</span>{% if hot %}<span class="cs-bubbles"><span style="--c:{{ hot['color'] }}">{{ hot['platform'][0] }}</span></span>{% endif %}</div>
                 </div>
                 <a href="{{ url_for('admin.users') }}" class="cs-tile">
-                    <span class="dots" aria-hidden="true">···</span>
+                    <span class="dots" aria-hidden="true">{{ ms('more_horiz') }}</span>
                     <div><div class="k">{{ period }}</div><div class="t">调用最多的客户<br>{{ (top_users[0]['calls'] ~ ' 次调用') if top_users else '暂无客户调用' }}</div></div>
                     <div class="flex items-end justify-between gap-2"><span class="big truncate">{{ top_users[0]['username'] if top_users else '—' }}</span>{% if top_users %}<span class="cs-bubbles">{% for u in top_users[:3] %}<span style="--c:{{ ['#0b65ff', '#34a3b4', '#0b1020'][loop.index0] }}">{{ u['username'][0]|upper }}</span>{% endfor %}</span>{% endif %}</div>
                 </a>
