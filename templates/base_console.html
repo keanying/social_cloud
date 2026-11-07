@@ -2,7 +2,7 @@
 {% macro icon(name, class_name='w-4 h-4') -%}
 <svg class="app-icon inline-block {{ class_name }}" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons.svg') }}#icon-{{ name }}"></use></svg>
 {%- endmacro %}
-<html lang="zh-CN" class="h-full bg-slate-50">
+<html lang="zh-CN" class="h-full">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -16,17 +16,17 @@
           extend: {
             colors: {
               brand: {
-                DEFAULT: '#4f46e5',
-                50: '#eef2ff',
-                100: '#e0e7ff',
-                200: '#c7d2fe',
-                300: '#a5b4fc',
-                400: '#818cf8',
-                500: '#6366f1',
-                600: '#4f46e5',
-                700: '#4338ca',
-                800: '#3730a3',
-                900: '#312e81',
+                DEFAULT: '#2f5bff',
+                50: '#eef3ff',
+                100: '#dfe8ff',
+                200: '#c4d4ff',
+                300: '#9db6ff',
+                400: '#6f8fff',
+                500: '#4a6dff',
+                600: '#2f5bff',
+                700: '#2246e0',
+                800: '#1f3bb5',
+                900: '#1e358f',
               }
             },
             fontFamily: {
@@ -39,167 +39,119 @@
     </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/console.css') }}">
 </head>
-<body class="h-full font-sans text-slate-800 antialiased bg-slate-50 flex flex-col selection:bg-indigo-100 selection:text-indigo-900">
+<body class="cs h-full font-sans text-slate-800 antialiased flex flex-col selection:bg-blue-100 selection:text-blue-900">
+<div class="cs-bg" aria-hidden="true"></div>
 {% block body %}
 {% if g.user %}
-<div class="console-app min-h-screen bg-slate-50">
-    <!-- 纯固定侧边栏 (Fixed Left Rail) -->
-    <aside class="sidebar fixed inset-y-0 left-0 w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between select-none z-30 shadow-xs">
-        <!-- 顶部 Logo 栏 (固定 64px 高度与顶栏对齐) -->
-        <div class="sidebar-head h-16 px-5 border-b border-slate-100 flex items-center justify-between shrink-0">
-            <a class="brand flex items-center gap-2.5 font-bold text-slate-900 hover:text-brand transition" href="{{ url_for('web.index') }}" target="_blank">
-                <img src="{{ url_for('static', filename='images/logo-web.png') }}" alt="Logo" class="w-7 h-7 rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
-                <span class="text-sm font-bold tracking-tight text-slate-900">Media Parser</span>
-            </a>
-            <span class="role-badge text-xs font-semibold px-2 py-0.5 rounded-full {{ 'bg-indigo-50 text-indigo-700 border border-indigo-200' if g.user['role']=='admin' else 'bg-slate-100 text-slate-600 border border-slate-200' }}">
-                {{ '管理后台' if g.user['role']=='admin' else '控制台' }}
-            </span>
-        </div>
-
-        <!-- 独立滚动导航菜单列表 -->
-        <nav class="sidebar-nav flex-1 overflow-y-auto px-3.5 py-4 space-y-1.5 custom-scroll">
-            {% if g.user['role'] == 'admin' %}
-            <div class="nav-group-title text-xs font-bold text-slate-400 px-3 pt-2 pb-1 uppercase tracking-wider">系统管理</div>
-            <a href="{{ url_for('admin.overview') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'overview' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('chart', 'w-4 h-4') }}</span><span>概览</span>
-            </a>
-            <a href="{{ url_for('admin.settings') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'settings' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('settings', 'w-4 h-4') }}</span><span>系统设置</span>
-            </a>
-            
-            <div class="nav-group-title text-xs font-bold text-slate-400 px-3 pt-4 pb-1 uppercase tracking-wider">业务管理</div>
-            <a href="{{ url_for('admin.users') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'users' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('users', 'w-4 h-4') }}</span><span>客户账号</span>
-            </a>
-            <a href="{{ url_for('admin.keys') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'keys' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('key', 'w-4 h-4') }}</span><span>API 密钥</span>
-            </a>
-            <a href="{{ url_for('admin.platforms') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'platforms' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('globe', 'w-4 h-4') }}</span><span>支持平台</span>
-            </a>
-            <a href="{{ url_for('admin.cookies') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'cookies' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('shield', 'w-4 h-4') }}</span><span>凭据巡检</span>
-            </a>
-
-            <div class="nav-group-title text-xs font-bold text-slate-400 px-3 pt-4 pb-1 uppercase tracking-wider">运维监控</div>
-            <a href="{{ url_for('admin.logs') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'logs' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('scroll', 'w-4 h-4') }}</span><span>运行日志</span>
-            </a>
-
-            <div class="nav-group-title text-xs font-bold text-slate-400 px-3 pt-4 pb-1 uppercase tracking-wider">参考文档</div>
-            <a href="{{ url_for('admin.docs') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'docs' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('book', 'w-4 h-4') }}</span><span>开发者文档</span>
-            </a>
-            {% else %}
-            <div class="nav-group-title text-xs font-bold text-slate-400 px-3 pt-2 pb-1 uppercase tracking-wider">概览与统计</div>
-            <a href="{{ url_for('portal.overview') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'overview' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('chart', 'w-4 h-4') }}</span><span>概览</span>
-            </a>
-            <a href="{{ url_for('portal.logs') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'logs' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('scroll', 'w-4 h-4') }}</span><span>请求日志</span>
-            </a>
-            
-            <div class="nav-group-title text-xs font-bold text-slate-400 px-3 pt-4 pb-1 uppercase tracking-wider">开发者中心</div>
-            <a href="{{ url_for('portal.keys') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'keys' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('key', 'w-4 h-4') }}</span><span>API 密钥</span>
-            </a>
-            <a href="{{ url_for('portal.platforms') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'platforms' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('globe', 'w-4 h-4') }}</span><span>支持平台</span>
-            </a>
-            <a href="{{ url_for('portal.docs') }}" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-50/80 text-brand font-semibold shadow-2xs' if active_nav == 'docs' else 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <span class="w-5 h-5 flex items-center justify-center shrink-0">{{ icon('book', 'w-4 h-4') }}</span><span>开发者文档</span>
-            </a>
-            {% endif %}
-        </nav>
-
-        <!-- 底部个人信息与退出栏 -->
-        <div class="sidebar-foot p-3.5 border-t border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
-            <div class="user-card-inner flex items-center gap-3 min-w-0">
-                <div class="user-avatar w-9 h-9 rounded-full bg-brand/10 border border-brand/20 text-brand flex items-center justify-center font-bold text-xs shrink-0">
-                    {{ g.user['username'][0]|upper }}
-                </div>
-                <div class="user-meta min-w-0 truncate">
-                    <div class="user-name text-sm font-semibold text-slate-900 truncate leading-snug">{{ g.user['username'] }}</div>
-                    <div class="user-role text-xs text-slate-500 truncate leading-normal">{{ '超级管理员' if g.user['role']=='admin' else '客户账号' }}</div>
-                </div>
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="sidebar-action-btn p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors" onclick="openChangePasswordModal()" title="修改密码" aria-label="修改密码">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                </button>
-                <form method="post" action="{{ url_for('auth.logout') }}" class="m-0 flex">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="logout-icon-btn p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="退出登录" aria-label="退出登录">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    </button>
-                </form>
-            </div>
-        </div>
-    </aside>
-
-    <!-- 主工作区 (Main Content Area, 左侧偏移 pl-64) -->
-    <div class="main-wrapper pl-64 flex flex-col flex-1 min-w-0 min-h-screen">
-        <!-- 顶部浮动气泡卡片提示容器 (Toast Notification) -->
-        <div id="toast-container" class="toast-container fixed top-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm pointer-events-none" aria-live="polite">
-            {% for category, message in get_flashed_messages(with_categories=true) %}
-            <div class="toast-bubble pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg bg-white text-sm transition-all duration-300 {{ 'border-red-200 text-red-700 bg-red-50/90' if category == 'error' else ('border-amber-200 text-amber-700 bg-amber-50/90' if category == 'warning' else 'border-emerald-200 text-emerald-800 bg-emerald-50/90') }}" role="alert">
-                <div class="toast-icon shrink-0">
-                    {% if category == 'error' %}
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                    {% elif category == 'warning' %}
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    {% else %}
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 10 11 15 8 12"/></svg>
-                    {% endif %}
-                </div>
-                <div class="toast-content flex-1 font-medium">{{ message }}</div>
-                <button type="button" class="toast-close text-slate-400 hover:text-slate-700 text-lg leading-none" onclick="dismissToast(this.closest('.toast-bubble'))" aria-label="关闭">&times;</button>
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- 顶部顶栏 (Topbar, 规范 64px 高度) -->
-        <header class="main-topbar h-16 px-8 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
-            <div class="topbar-left flex items-center gap-2 text-sm">
-                <nav class="topbar-breadcrumb flex items-center gap-1.5 text-slate-500 font-medium" aria-label="Breadcrumb">
-                    <a href="{{ url_for('admin.overview' if g.user['role']=='admin' else 'portal.overview') }}" class="hover:text-slate-900 transition">{{ '管理后台' if g.user['role']=='admin' else '控制台' }}</a>
-                    <span class="topbar-separator text-slate-300">/</span>
-                    <span class="text-slate-500">
-                        {%- block nav_group -%}
-                        {%- if g.user['role'] == 'admin' -%}
-                            {%- if active_nav in ['overview', 'settings'] -%}系统管理
-                            {%- elif active_nav in ['users', 'keys', 'platforms'] -%}业务管理
-                            {%- elif active_nav == 'logs' -%}运维监控
-                            {%- elif active_nav == 'docs' -%}参考文档
-                            {%- else -%}系统管理{%- endif -%}
-                        {%- else -%}
-                            {%- if active_nav in ['overview', 'logs'] -%}概览与统计
-                            {%- elif active_nav in ['keys', 'platforms', 'docs'] -%}开发者中心
-                            {%- else -%}控制中心{%- endif -%}
-                        {%- endif -%}
-                        {%- endblock -%}
-                    </span>
-                    <span class="topbar-separator text-slate-300">/</span>
-                    <h1 class="page-title text-sm font-bold text-slate-900 inline" id="active-page-title">{% block page_title %}{% endblock %}</h1>
-                </nav>
-            </div>
-            <div class="topbar-right flex items-center gap-3">
-                {% if is_api_enabled() %}
-                <span class="status-pill online inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
-                    <span class="status-dot w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>API 正常
-                </span>
+{% set is_admin = g.user['role'] == 'admin' %}
+{% if is_admin %}
+{% set nav_items = [
+    ('overview', 'admin.overview', 'chart', '概览', '系统管理'),
+    ('settings', 'admin.settings', 'settings', '系统设置', '系统管理'),
+    ('users', 'admin.users', 'users', '客户账号', '业务管理'),
+    ('keys', 'admin.keys', 'key', 'API 密钥', '业务管理'),
+    ('platforms', 'admin.platforms', 'globe', '支持平台', '业务管理'),
+    ('cookies', 'admin.cookies', 'shield', '凭据巡检', '业务管理'),
+    ('logs', 'admin.logs', 'scroll', '运行日志', '运维监控'),
+    ('docs', 'admin.docs', 'book', '开发者文档', '参考文档')] %}
+{% else %}
+{% set nav_items = [
+    ('overview', 'portal.overview', 'chart', '概览', '概览与统计'),
+    ('logs', 'portal.logs', 'scroll', '请求日志', '概览与统计'),
+    ('keys', 'portal.keys', 'key', 'API 密钥', '开发者中心'),
+    ('platforms', 'portal.platforms', 'globe', '支持平台', '开发者中心'),
+    ('docs', 'portal.docs', 'book', '开发者文档', '开发者中心')] %}
+{% endif %}
+<div class="console-app min-h-screen">
+    <!-- 顶部浮动气泡卡片提示容器 (Toast Notification) -->
+    <div id="toast-container" class="toast-container fixed top-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm pointer-events-none" aria-live="polite">
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+        <div class="toast-bubble pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg bg-white text-sm transition-all duration-300 {{ 'border-red-200 text-red-700 bg-red-50/90' if category == 'error' else ('border-amber-200 text-amber-700 bg-amber-50/90' if category == 'warning' else 'border-emerald-200 text-emerald-800 bg-emerald-50/90') }}" role="alert">
+            <div class="toast-icon shrink-0">
+                {% if category == 'error' %}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                {% elif category == 'warning' %}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 {% else %}
-                <span class="status-pill offline inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
-                    <span class="status-dot w-2 h-2 rounded-full bg-amber-500"></span>API 维护中
-                </span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 10 11 15 8 12"/></svg>
                 {% endif %}
             </div>
-        </header>
-
-        <!-- 内容区域 (内边距 p-8 舒适宽敞) -->
-        <div class="flex-1 p-6 sm:p-8 min-w-0">
-            {% block console_content %}{% endblock %}
+            <div class="toast-content flex-1 font-medium">{{ message }}</div>
+            <button type="button" class="toast-close text-slate-400 hover:text-slate-700 text-lg leading-none" onclick="dismissToast(this.closest('.toast-bubble'))" aria-label="关闭">&times;</button>
         </div>
+        {% endfor %}
+    </div>
+
+    <!-- 顶栏：品牌 · 胶囊导航 · 圆形操作按钮 -->
+    <header class="cs-top">
+        <a class="flex items-center gap-3 shrink-0 min-w-0" href="{{ url_for('web.index') }}" target="_blank" title="打开首页">
+            <img src="{{ url_for('static', filename='images/logo-web.png') }}" alt="Logo" class="w-11 h-11 rounded-2xl bg-white p-1.5 shadow-[0_8px_20px_-10px_rgba(15,23,42,.35)]">
+            <span class="hidden sm:block leading-tight min-w-0">
+                <span class="block text-[17px] font-extrabold tracking-tight text-[#0b1020]">Media Parser</span>
+                <span class="block text-xs text-slate-500 truncate">{{ '管理后台 · 解析服务运营' if is_admin else '控制台 · 开发者中心' }}</span>
+            </span>
+        </a>
+
+        <nav class="cs-pills hidden xl:flex" aria-label="主导航">
+            {% for key, endpoint, ic, label, group in nav_items %}
+            <a href="{{ url_for(endpoint) }}" class="{{ 'is-active' if active_nav == key }}">{{ label }}</a>
+            {% endfor %}
+        </nav>
+
+        <div class="flex items-center gap-2.5 shrink-0">
+            {% if is_api_enabled() %}
+            <span class="status-pill online hidden md:inline-flex items-center gap-2 px-3.5 h-[42px] rounded-full text-xs font-semibold bg-white text-emerald-700 shadow-[0_6px_18px_-8px_rgba(15,23,42,.25)]">
+                <span class="status-dot w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>API 正常
+            </span>
+            {% else %}
+            <span class="status-pill offline hidden md:inline-flex items-center gap-2 px-3.5 h-[42px] rounded-full text-xs font-semibold bg-white text-amber-700 shadow-[0_6px_18px_-8px_rgba(15,23,42,.25)]">
+                <span class="status-dot w-2 h-2 rounded-full bg-amber-500"></span>API 维护中
+            </span>
+            {% endif %}
+            <button type="button" class="cs-round" onclick="openChangePasswordModal()" title="修改密码" aria-label="修改密码">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </button>
+            <a class="cs-round" href="{{ url_for('web.index') }}" target="_blank" title="打开首页" aria-label="打开首页">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+            <form method="post" action="{{ url_for('auth.logout') }}" class="m-0 flex">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="cs-round logout-icon-btn hover:!text-rose-600" title="退出登录" aria-label="退出登录">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </form>
+            <span class="cs-avatar" title="{{ g.user['username'] }} · {{ '超级管理员' if is_admin else '客户账号' }}">
+                {{ g.user['username'][0]|upper }}<i></i>
+            </span>
+        </div>
+    </header>
+
+    <!-- 左侧悬浮图标栏 -->
+    <nav class="cs-rail" aria-label="快捷导航">
+        {% for key, endpoint, ic, label, group in nav_items %}
+        <a href="{{ url_for(endpoint) }}" class="{{ 'is-active' if active_nav == key }}" data-tip="{{ label }}" aria-label="{{ label }}">{{ icon(ic, 'w-[18px] h-[18px]') }}</a>
+        {% endfor %}
+    </nav>
+
+    <!-- 主工作区 -->
+    <div class="cs-content">
+        <nav class="cs-crumb" aria-label="Breadcrumb">
+            <a href="{{ url_for(nav_items[0][1]) }}" class="cs-round !w-9 !h-9" aria-label="返回概览" title="返回概览">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </a>
+            <span>{{ '管理后台' if is_admin else '控制台' }}</span>
+            <span class="text-slate-300">/</span>
+            <span>
+                {%- block nav_group scoped -%}
+                {%- set ns = namespace(group='控制中心') -%}
+                {%- for key, endpoint, ic, label, group in nav_items -%}{%- if key == active_nav -%}{%- set ns.group = group -%}{%- endif -%}{%- endfor -%}
+                {{ ns.group }}
+                {%- endblock -%}
+            </span>
+            <span class="text-slate-300">/</span>
+            <h1 class="page-title inline text-slate-900 font-bold" id="active-page-title">{% block page_title %}{% endblock %}</h1>
+        </nav>
+        {% block console_content %}{% endblock %}
     </div>
 </div>
 
@@ -311,7 +263,7 @@ function initChartInteractions() {
             tooltip.innerHTML = `
                 <div class="tt-title">${date}</div>
                 <div class="tt-row">
-                    <span style="display:flex;align-items:center;gap:6px"><i class="tt-dot" style="background:#4f46e5"></i>总调用</span>
+                    <span style="display:flex;align-items:center;gap:6px"><i class="tt-dot" style="background:#2f5bff"></i>总调用</span>
                     <strong>${calls} 次</strong>
                 </div>
                 <div class="tt-row">
