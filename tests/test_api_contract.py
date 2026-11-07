@@ -275,9 +275,9 @@ class ApiContractTest(unittest.TestCase):
             res = make_response(200, "ok", {"foo": "bar"}, True)
             data = res.get_json()
             self.assertIn("_tip", data)
-            self.assertEqual(data["_tip"]["author"], "ucmao")
-            self.assertEqual(data["_tip"]["website"], "https://github.com/ucmao/media-parser")
-            self.assertEqual(data["_tip"]["notice"], "本接口由开源项目 media-parser 提供服务")
+            self.assertEqual(data["_tip"]["author"], "社媒云")
+            self.assertEqual(data["_tip"]["website"], "")
+            self.assertEqual(data["_tip"]["notice"], "本接口由社媒云提供服务")
 
 
 if __name__ == "__main__":
