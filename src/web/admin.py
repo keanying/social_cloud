@@ -142,8 +142,8 @@ def update_settings():
             init_cred = 100
         set_setting("default_initial_credits", init_cred)
 
-    set_setting("api_tip_author", (request.form.get("api_tip_author") or "").strip() or "ucmao")
-    set_setting("api_tip_website", (request.form.get("api_tip_website") or "").strip() or "https://github.com/ucmao/media-parser")
+    set_setting("api_tip_author", (request.form.get("api_tip_author") or "").strip() or "社媒云")
+    set_setting("api_tip_website", (request.form.get("api_tip_website") or "").strip())
     set_setting("api_tip_notice", (request.form.get("api_tip_notice") or "").strip() or "本接口由开源项目 media-parser 提供服务")
 
     # 保存平台 Cookie 覆盖凭据及动态代理 API 地址

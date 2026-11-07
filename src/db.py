@@ -132,13 +132,23 @@ def init_db():
         "default_trial_days": "365",
         "default_initial_credits": "100",
         "api_tip_enabled": "1",
+        "api_tip_author": "社媒云",
+        "api_tip_website": "",
+        "api_tip_notice": "本接口由社媒云提供服务",
+    }
+    db.executemany(
+        "INSERT OR IGNORE INTO system_settings(key, value) VALUES (?, ?)",
+        defaults.items(),
+    )
+    # 品牌迁移：仍是上游原始默认值的署名改为社媒云；管理员自定义过的值保持不变
+    legacy_defaults = {
         "api_tip_author": "ucmao",
         "api_tip_website": "https://github.com/ucmao/media-parser",
         "api_tip_notice": "本接口由开源项目 media-parser 提供服务",
     }
     db.executemany(
-        "INSERT OR IGNORE INTO system_settings(key, value) VALUES (?, ?)",
-        defaults.items(),
+        "UPDATE system_settings SET value = ? WHERE key = ? AND value = ?",
+        [(defaults[key], key, old) for key, old in legacy_defaults.items()],
     )
     db.commit()
 

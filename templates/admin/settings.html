@@ -415,7 +415,7 @@
                                     <label for="api_tip_author"
                                         class="block text-xs font-semibold text-slate-700">作者</label>
                                     <input type="text" id="api_tip_author" name="api_tip_author"
-                                        value="{{ settings.get('api_tip_author', 'ucmao') }}" placeholder="例如: ucmao"
+                                        value="{{ settings.get('api_tip_author', '社媒云') }}" placeholder="例如: 社媒云"
                                         oninput="updateApiTipPreview()" onchange="triggerSettingsSubmit(this)"
                                         class="w-full px-3.5 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition bg-slate-50/50">
                                 </div>
@@ -423,8 +423,8 @@
                                     <label for="api_tip_website"
                                         class="block text-xs font-semibold text-slate-700">官网地址</label>
                                     <input type="url" id="api_tip_website" name="api_tip_website"
-                                        value="{{ settings.get('api_tip_website', 'https://github.com/ucmao/media-parser') }}"
-                                        placeholder="例如: https://github.com/ucmao/media-parser"
+                                        value="{{ settings.get('api_tip_website', '') }}"
+                                        placeholder="例如: https://your-domain.com"
                                         oninput="updateApiTipPreview()" onchange="triggerSettingsSubmit(this)"
                                         class="w-full px-3.5 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition bg-slate-50/50">
                                 </div>
@@ -600,8 +600,8 @@
         const previewEl = document.getElementById('api-tip-preview-code');
         if (!previewEl) return;
 
-        const author = (authorEl && authorEl.value.trim()) || 'ucmao';
-        const website = (websiteEl && websiteEl.value.trim()) || 'https://github.com/ucmao/media-parser';
+        const author = (authorEl && authorEl.value.trim()) || '社媒云';
+        const website = (websiteEl && websiteEl.value.trim()) || '';
         const notice = (noticeEl && noticeEl.value.trim()) || '本接口由开源项目 media-parser 提供服务';
 
         const samplePayload = {

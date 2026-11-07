@@ -135,21 +135,7 @@
 
     <!-- 主工作区 -->
     <div class="cs-content">
-        <nav class="cs-crumb" aria-label="Breadcrumb">
-            <a href="{{ url_for(nav_items[0][1]) }}" class="cs-round !w-9 !h-9" aria-label="返回概览" title="返回概览">{{ ms('arrow_back') }}
-            </a>
-            <span>{{ '管理后台' if is_admin else '控制台' }}</span>
-            <span class="text-slate-300">/</span>
-            <span>
-                {%- block nav_group scoped -%}
-                {%- set ns = namespace(group='控制中心') -%}
-                {%- for key, endpoint, ic, label, group in nav_items -%}{%- if key == active_nav -%}{%- set ns.group = group -%}{%- endif -%}{%- endfor -%}
-                {{ ns.group }}
-                {%- endblock -%}
-            </span>
-            <span class="text-slate-300">/</span>
-            <h1 class="page-title inline text-slate-900 font-bold" id="active-page-title">{% block page_title %}{% endblock %}</h1>
-        </nav>
+        <h1 class="sr-only" id="active-page-title">{% block page_title %}{% endblock %}</h1>
         {% block console_content %}{% endblock %}
     </div>
 </div>
