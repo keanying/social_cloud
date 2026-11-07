@@ -696,11 +696,15 @@ body.cs { background: #eef2f8; }
 .cs-content table tbody tr:hover td { background: rgba(46, 50, 56, .04) !important; }
 .cs-content table input[type="checkbox"] { width: 16px; height: 16px; border-radius: 4px; accent-color: var(--cs-blue); }
 /* 状态标签：圆角胶囊 + 前置圆点（Semi Tag shape="circle"） */
-.cs-content table td span.rounded-full[class*="bg-"] {
+/* 只匹配文字胶囊；带显式宽高的是圆点 / 开关等小元素，不处理 */
+.cs-content table td span.rounded-full[class*="bg-"]:not([class*="w-"]):not([class*="h-"]) {
   display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px !important;
-  border: 0 !important; font-size: 12px; font-weight: 500;
+  border: 0 !important; font-size: 12px; font-weight: 500; white-space: nowrap;
 }
-.cs-content table td span.rounded-full[class*="bg-"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .85; }
+/* 标签内已有自带圆点时不再重复添加 */
+.cs-content table td span.rounded-full[class*="bg-"]:not([class*="w-"]):not([class*="h-"]):not(:has(> span.rounded-full))::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .85; flex: none;
+}
 /* 头像 + 名称 */
 .cs-avatar-cell { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
 .cs-avatar-sm {
@@ -714,3 +718,65 @@ body.cs { background: #eef2f8; }
 /* 更多操作菜单：fixed 定位，避免被表格的横向滚动容器裁切 */
 .action-dropdown-menu.is-floating { position: fixed !important; right: auto !important; margin: 0 !important; z-index: 60; border-radius: 12px; border-color: rgba(28, 31, 35, .08) !important; box-shadow: 0 12px 32px -8px rgba(28, 31, 35, .25) !important; padding: 4px !important; }
 .action-dropdown-menu.is-floating .action-dropdown-item { border-radius: 8px; padding: 8px 10px !important; font-size: 13px !important; }
+
+/* ==========================================================================
+   交互层（static/js/console-ui.js）
+   ========================================================================== */
+/* 按压：轻微缩放 + 涟漪（HeroUI Button） */
+.cs-pressable { position: relative; overflow: hidden; }
+.cs-round:active, .cs-icon-btn:active, .cs-row-btn:active, .cs-rail a:active, .cs-pills a:active,
+.cs-seg a:active, .tab-nav-btn:active, .cs-content button.bg-brand:active, .cs-content a.bg-brand:active { transform: scale(.97); }
+.cs-ripple { position: absolute; border-radius: 50%; pointer-events: none; background: currentColor; opacity: .18; transform: scale(0); animation: csRipple .55s ease-out forwards; }
+@keyframes csRipple { to { transform: scale(1); opacity: 0; } }
+
+/* 气泡提示（HeroUI Tooltip） */
+.cs-tooltip {
+  position: fixed; z-index: 90; pointer-events: none; max-width: 260px; padding: 6px 10px; border-radius: 10px;
+  background: #1c1f23; color: #fff; font-size: 12px; font-weight: 500; line-height: 1.4;
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, .35); opacity: 0; transform: translateY(4px) scale(.96);
+  transition: opacity .12s ease, transform .16s cubic-bezier(.2, .9, .3, 1.2);
+}
+.cs-tooltip.is-below { transform: translateY(-4px) scale(.96); }
+.cs-tooltip.is-on { opacity: 1; transform: none; }
+
+/* 菜单弹出（HeroUI Dropdown） */
+.action-dropdown-menu.is-floating:not(.hidden), .batch-dropdown-menu:not(.hidden) { animation: csMenuIn .16s cubic-bezier(.2, .9, .3, 1.15) both; transform-origin: top right; }
+@keyframes csMenuIn { from { opacity: 0; transform: translateY(-4px) scale(.95); } }
+
+/* 标签滑动指示块（HeroUI Tabs） */
+.cs-tabs { position: relative; isolation: isolate; }
+.cs-tab-cursor {
+  position: absolute; left: 0; top: 0; z-index: -1; border-radius: 10px; background: #fff;
+  box-shadow: 0 1px 2px rgba(28, 31, 35, .08), 0 4px 10px -6px rgba(28, 31, 35, .25);
+  transition: transform .32s cubic-bezier(.3, 1.3, .5, 1), width .32s cubic-bezier(.3, 1.3, .5, 1);
+}
+.cs-tabs .tab-nav-btn { background: transparent !important; box-shadow: none !important; }
+.cs-tabs .tab-nav-btn.is-active { color: var(--cs-blue) !important; }
+[id^="tab-content-"] { animation: csFadeUp .28s ease both; }
+@keyframes csFadeUp { from { opacity: 0; transform: translateY(6px); } }
+
+/* 彩色卡片聚光（Inspira Card Spotlight） */
+.cs-tile { isolation: isolate; overflow: hidden; }
+.cs-tile::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0; transition: opacity .3s; pointer-events: none;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, .22), transparent 65%);
+}
+.cs-tile:not(.cs-tile--blue):not(.cs-tile--teal):not(.cs-tile--ink):not(.cs-tile--sun)::after {
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(11, 101, 255, .1), transparent 65%);
+}
+.cs-tile:hover::after { opacity: 1; }
+
+/* 表格加载：顶部不定进度条（HeroUI Progress isIndeterminate） */
+.cs-progress { position: fixed; left: 0; right: 0; top: 0; height: 3px; z-index: 95; overflow: hidden; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.cs-progress::before { content: ""; position: absolute; top: 0; bottom: 0; width: 35%; border-radius: 3px; background: linear-gradient(90deg, var(--cs-blue), var(--cs-teal)); animation: csIndeterminate 1.1s ease-in-out infinite; }
+.cs-progress.is-on { opacity: 1; }
+@keyframes csIndeterminate { 0% { left: -35%; } 100% { left: 100%; } }
+.cs-content > main.cs-loading table tbody { filter: saturate(.6); }
+
+/* 开关更有弹性 */
+.switch-slider::before { transition: transform .28s cubic-bezier(.3, 1.4, .5, 1) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-tab-cursor, .cs-tooltip, .switch-slider::before { transition: none !important; }
+  [id^="tab-content-"], .action-dropdown-menu.is-floating:not(.hidden), .batch-dropdown-menu:not(.hidden), .cs-progress::before { animation: none !important; }
+}
