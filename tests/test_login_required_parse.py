@@ -94,6 +94,18 @@ class LoginRequiredParseTest(unittest.TestCase):
             urls = {r["url"] for r in get_db().execute("SELECT url FROM media_grants WHERE user_id=?", (self.user_id,))}
         self.assertEqual(urls, {VIDEO_URL, IMAGE_URL})
 
+    def test_page_parse_does_not_consume_credits(self):
+        with self.app.app_context():
+            db = get_db()
+            db.execute("UPDATE users SET credits = 10 WHERE id = ?", (self.user_id,))
+            db.commit()
+        self.login()
+        self.assertEqual(self.parse().status_code, 200)
+        self.assertEqual(self.parse().status_code, 200)
+        with self.app.app_context():
+            credits = get_db().execute("SELECT credits FROM users WHERE id = ?", (self.user_id,)).fetchone()["credits"]
+        self.assertEqual(credits, 10)
+
     def test_login_requirement_can_be_disabled(self):
         with patch("src.api.parse.demo_login_required", return_value=False):
             response = self.parse()
