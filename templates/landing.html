@@ -1,0 +1,1404 @@
+<!doctype html>
+{% macro icon(name, class_name='w-4 h-4') -%}
+<svg class="{{ class_name }}" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons.svg') }}#icon-{{ name }}"></use></svg>
+{%- endmacro %}
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="社媒云：复制分享链接，一键保存抖音、小红书、B站、快手等平台的视频、图集、实况照片与背景音乐。">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="48x48">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/brand-icon-180.png') }}">
+    <title>社媒云 - 复制链接，一键保存视频和图片</title>
+    <script src="{{ url_for('static', filename='vendor/tailwind.js') }}"></script>
+    <script>tailwind.config={theme:{extend:{colors:{brand:'#0b65ff'},fontFamily:{sans:['Inter','-apple-system','BlinkMacSystemFont','"PingFang SC"','"Hiragino Sans GB"','"Microsoft YaHei"','sans-serif']}}}}</script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    <script>
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+            document.documentElement.classList.add('land-anim');
+        }
+    </script>
+</head>
+{% set palette = {'抖音':'#111827','快手':'#ff5a1f','小红书':'#ff2442','哔哩哔哩':'#00a1d6','微博':'#e6162d','知乎':'#0066ff','视频号':'#07c160','今日头条':'#f04142','网易云音乐':'#d81e06','即梦AI':'#7c3aed','豆包':'#3b82f6','西瓜视频':'#ff7a00','QQ音乐':'#31c27c','皮皮虾':'#ff6d3a','微信公众号':'#07c160','AcFun':'#fd4c5c','得物':'#111827','闲鱼':'#ffb800','虎牙':'#ff9600','美拍':'#ff3d7f','剪映':'#111827','央视频':'#1257d6','汽水音乐':'#0ab3a8','酷狗音乐':'#2c8ef8'} %}
+{% set globe_platforms = ['抖音','快手','小红书','哔哩哔哩','微博','知乎','视频号','今日头条','网易云音乐','即梦AI','豆包','西瓜视频'] %}
+<body class="lp font-sans antialiased selection:bg-blue-100 selection:text-blue-900">
+    <header id="siteNav" class="nav">
+        <div class="wrap nav-inner">
+            <a href="#top" class="brand" aria-label="社媒云 首页"><span class="brand-tile"><img src="{{ url_for('static', filename='images/brand-logo.png') }}" alt=""></span>社媒云</a>
+            <nav id="lpNav" class="nav-links hidden lg:flex" aria-label="页面导航">
+                <a href="#parser" class="is-active">在线解析</a>
+                <a href="#platforms">支持平台</a>
+                <a href="#guide">使用教程</a>
+                <a href="#features">能保存什么</a>
+                <a href="#faq">常见问题</a>
+            </nav>
+            <div class="flex items-center gap-1.5">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-light">登录</a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary">注册</a>
+            </div>
+        </div>
+    </header>
+
+    <main id="top" class="relative">
+        <section id="parser" class="wrap pt-3 lg:pt-6 scroll-mt-24">
+            <div id="stage" class="stage" data-state="idle">
+                <div class="stage-card">
+                    <div class="stage-bg" aria-hidden="true"><div class="stage-rings"></div></div>
+
+                    <div class="globe-wrap" aria-hidden="true">
+                        <div class="globe-inner">
+                            <canvas id="globeCanvas"></canvas>
+                            <div id="globeChips" class="globe-chips">
+                                {% for name in globe_platforms %}<span class="globe-chip" style="--c:{{ palette.get(name, '#0b65ff') }}"><b>{{ name[0] }}</b>{{ name }}</span>{% endfor %}
+                            </div>
+                            <div class="globe-pin"><i>✓</i><span id="globePinText">解析完成</span></div>
+                        </div>
+                    </div>
+
+                    <div class="stage-left">
+                        <div class="stage-copy">
+                            <span class="hero-tag"><b>{{ platform_names|length }} 个平台</b>短视频 · 图文笔记 · 音乐</span>
+                            <h1 class="stage-title mt-6">看到喜欢的内容<br>复制链接就能存下来</h1>
+                            <p class="mt-5 text-[16.5px] leading-7 text-white/85">视频、图集、实况照片、背景音乐和文案，<br class="hidden sm:block">粘贴一条分享链接，一次帮你整理好。</p>
+                            <ul class="hero-points">
+                                <li>{{ icon('check', 'w-3.5 h-3.5') }}不用下载 App</li>
+                                <li>{{ icon('check', 'w-3.5 h-3.5') }}整段分享文案也能识别</li>
+                                <li>{{ icon('check', 'w-3.5 h-3.5') }}尽量保持原画质</li>
+                            </ul>
+                        </div>
+
+                        {% if not parser_enabled %}
+                        <div class="mt-6 rounded-2xl bg-white/15 px-4 py-3 text-sm text-white flex items-center gap-2.5">
+                            {{ icon('alert', 'w-4 h-4 shrink-0') }}
+                            <span><strong>在线解析维护中：</strong>暂时无法提交，请稍后再来。</span>
+                        </div>
+                        {% endif %}
+
+                        <div class="composer">
+                            <label for="parseUrl" class="sr-only">粘贴分享链接或分享文案</label>
+                            <input type="text" id="hpWebsite" name="website" style="display:none !important; opacity:0; position:absolute; left:-9999px" tabindex="-1" autocomplete="off">
+                            <textarea id="parseUrl" rows="3" maxlength="2000" {{ 'disabled' if not parser_enabled }} placeholder="{{ '粘贴分享链接，或直接粘贴整段分享文案' if parser_enabled else '在线解析维护中，暂时无法提交…' }}"></textarea>
+                            <div class="composer-foot">
+                                <span class="composer-hint"><span class="kbd">Ctrl</span><span class="kbd">Enter</span>快速解析</span>
+                                <div class="composer-actions">
+                                    {% if parser_enabled %}
+                                    <button type="button" class="btn btn-light" onclick="pasteFromClipboard()">粘贴</button>
+                                    <button id="parseBtn" type="button" onclick="handleParse()" class="search-go">开始解析</button>
+                                    {% else %}
+                                    <button id="parseBtn" type="button" disabled class="search-go">维护中</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% if parser_enabled %}
+                        <div class="hero-links">
+                            <button type="button" onclick="fillSampleUrl()">{{ icon('lightbulb', 'w-3.5 h-3.5') }}没有链接？试试示例</button>
+                            <a href="#guide">{{ icon('book', 'w-3.5 h-3.5') }}怎么复制分享链接</a>
+                        </div>
+                        {% endif %}
+
+                        <div id="loadingState" class="hidden stage-loading">正在识别平台并获取媒体信息…</div>
+                        <!-- 友好型解析提示/错误状态卡片 -->
+                        <div id="errorState" class="hidden mt-5 rounded-[22px] border border-slate-200/80 bg-white p-5 sm:p-6 text-slate-700 shadow-[0_24px_50px_-24px_rgba(10,20,90,.6)] transition-all duration-200">
+                            <div class="flex items-start gap-4">
+                                <div class="shrink-0 w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20 flex items-center justify-center">
+                                    {{ icon('alert', 'w-5 h-5') }}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                                        <h4 id="errorTitle" class="text-[15px] font-semibold text-slate-900 leading-snug">暂时无法解析该内容</h4>
+                                        <span id="errorTag" class="hidden rounded-full border border-slate-200 bg-slate-100/80 px-2.5 py-0.5 text-xs font-medium text-slate-600"></span>
+                                    </div>
+                                    <p id="errorMsg" class="mt-1 text-sm text-slate-600 leading-relaxed"></p>
+                                    <div id="errorHintBox" class="mt-3.5 rounded-xl border border-amber-200/80 bg-amber-50/70 px-3.5 py-2.5 text-xs leading-5 text-amber-900 flex items-start gap-2">
+                                        <span class="font-semibold text-amber-900 shrink-0">排查建议</span>
+                                        <span class="text-amber-400/80 shrink-0">·</span>
+                                        <span id="errorHint" class="flex-1 text-amber-800"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="stageResult" class="stage-result" aria-live="polite">
+                            <div class="flex items-end justify-between gap-4">
+                                <div class="min-w-0">
+                                    <p id="stageResultMeta" class="text-sm font-medium text-white/75">正在解析…</p>
+                                    <h2 id="stageResultTitle" class="truncate">识别平台中</h2>
+                                </div>
+                                <div class="flex gap-2 shrink-0">
+                                    <button type="button" class="ghost-round" onclick="scrollResTrack(-1)" aria-label="上一组">←</button>
+                                    <button type="button" class="ghost-round" onclick="scrollResTrack(1)" aria-label="下一组">→</button>
+                                    <button type="button" class="ghost-round ghost-round--solid" onclick="resetStage()" title="解析新的链接" aria-label="解析新的链接">↺</button>
+                                </div>
+                            </div>
+                            <div id="resTrack" class="res-track"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 解析结果详情（视觉预览 / JSON） -->
+        <section class="wrap" style="max-width:1040px">
+            <!-- 解析结果区（支持视觉预览与 JSON 模式切换） -->
+            <div id="resultState" class="hidden mt-8 rounded-[28px] border border-white/90 bg-white/80 backdrop-blur-xl overflow-hidden shadow-[0_30px_70px_-40px_rgba(30,41,110,.45)] scroll-mt-24">
+                <!-- 头部卡片：第一行 Meta/按钮，第二行 独占文案区 -->
+                <div class="p-5 sm:p-6 border-b border-slate-200 bg-slate-50/50 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5 flex-wrap min-w-0">
+                            <span id="resultPlatform" class="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-brand border border-indigo-100/80"></span>
+                            <img id="resultAuthorAvatar" src="" alt="" referrerpolicy="no-referrer" class="hidden h-7 w-7 shrink-0 rounded-full border border-slate-200 bg-slate-100 object-cover">
+                            <span id="resultAuthor" class="text-xs font-medium text-slate-500"></span>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button onclick="copyCurrentJson()" class="whitespace-nowrap shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-brand transition shadow-sm flex items-center gap-1.5">
+                                {{ icon('clipboard', 'w-4 h-4') }} 复制完整 JSON
+                            </button>
+                            <button onclick="copyFormattedResult()" class="whitespace-nowrap shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-brand transition shadow-sm flex items-center gap-1.5">
+                                {{ icon('clipboard', 'w-4 h-4') }} 格式化复制
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 id="resultTitle" class="text-base font-semibold leading-relaxed text-slate-900 break-words max-h-40 overflow-y-auto custom-scroll"></h3>
+                        <div id="resultDesc" class="hidden mt-3 border-l-2 border-indigo-200 pl-3 text-sm leading-6 text-slate-600 break-words whitespace-pre-wrap max-h-40 overflow-y-auto custom-scroll"><span id="resultDescText"></span></div>
+                    </div>
+                </div>
+
+                <!-- 视图切换选项卡 -->
+                <div class="px-5 sm:px-7 pt-4 pb-1 flex items-center gap-6 border-b border-slate-200 text-sm font-medium">
+                    <button id="tabVisual" onclick="switchResultTab('visual')" class="py-2.5 border-b-2 border-brand text-brand font-bold transition">视觉媒体预览</button>
+                    <button id="tabJson" onclick="switchResultTab('json')" class="py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition">JSON 原始结构</button>
+                </div>
+
+                <!-- 视觉媒体预览区 -->
+                <div id="viewVisual" class="p-5 sm:p-7 space-y-6">
+                    <!-- 视频播放栏 -->
+                    <div id="videoContainer" class="hidden scroll-mt-24">
+                        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                            <h4 class="text-sm font-semibold text-slate-900 flex items-center gap-2">{{ icon('video', 'w-4 h-4 text-slate-500') }} 视频文件预览 (<span id="videoCount">0</span>)</h4>
+                            <div class="flex items-center gap-2">
+                                <a id="videoOpenDirectLink" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-300 hover:text-brand transition shadow-sm" title="在新窗口中打开当前视频">{{ icon('link', 'w-3.5 h-3.5') }}新窗口打开</a>
+                                <button type="button" onclick="copyCurrentVideoUrl()" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-300 hover:text-brand transition shadow-sm" title="复制当前视频直链">{{ icon('clipboard', 'w-3.5 h-3.5') }}复制直链</button>
+                                <button id="previousVideoBtn" type="button" onclick="stepVideo(-1)" class="hidden rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-300 hover:text-brand disabled:cursor-not-allowed disabled:opacity-40 transition">← 上一个</button>
+                                <button id="nextVideoBtn" type="button" onclick="stepVideo(1)" class="hidden rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-300 hover:text-brand disabled:cursor-not-allowed disabled:opacity-40 transition">下一个 →</button>
+                            </div>
+                        </div>
+                        <div class="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-sm">
+                            <!-- 原生视频播放器 -->
+                            <video id="videoPlayer" controls playsinline preload="metadata" referrerpolicy="no-referrer" class="absolute inset-0 h-full w-full bg-black object-contain"></video>
+
+                            <!-- 播放受限 / 降级封面与占位容器 (极简现代风) -->
+                            <div id="videoFallbackContainer" class="absolute inset-0 hidden select-none overflow-hidden bg-slate-950 group/fallback">
+                                <!-- 封面图背景高斯模糊（填满 16:9 比例） -->
+                                <img id="videoCoverBg" src="" alt="" aria-hidden="true" referrerpolicy="no-referrer" class="absolute inset-0 hidden h-full w-full object-cover scale-125 blur-2xl opacity-35 brightness-75 pointer-events-none">
+                                
+                                <!-- 居中封面主体（保持原比例不失真） -->
+                                <img id="videoCoverImg" src="" alt="视频封面" referrerpolicy="no-referrer" class="absolute inset-0 z-10 hidden h-full w-full object-contain pointer-events-none drop-shadow-2xl">
+                                
+                                <!-- 兜底通用占位图（无封面或封面加载失败时） -->
+                                <img id="videoDefaultPlaceholder" src="{{ url_for('static', filename='images/video-placeholder.svg') }}" alt="已成功解析视频，但当前浏览器无法预览" class="absolute inset-0 z-10 hidden h-full w-full object-cover pointer-events-none">
+
+                                <!-- 半透明暗色微遮罩层 -->
+                                <div class="absolute inset-0 z-20 bg-slate-950/30 backdrop-blur-[0.5px] pointer-events-none transition duration-300 group-hover/fallback:bg-slate-950/40"></div>
+
+                                <!-- 中央核心交互区：大播放按钮 + 极简轻量文案 (点击整块区域在新窗口播放) -->
+                                <a id="videoFallbackPlayBtn" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="group/btn absolute inset-0 z-30 flex flex-col items-center justify-center p-4 text-center cursor-pointer text-white no-underline" title="在新窗口中播放视频" aria-label="在新窗口中播放视频">
+                                    <div class="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/25 backdrop-blur-md border border-white/40 shadow-2xl text-white transition-all duration-300 group-hover/btn:scale-110 group-hover/btn:bg-white/35 active:scale-95 mb-2.5">
+                                        <svg class="w-7 h-7 sm:w-8 sm:h-8 translate-x-0.5 fill-white drop-shadow" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+                                    </div>
+                                    <span class="inline-flex items-center gap-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 px-3.5 py-1 text-xs font-medium text-white/95 shadow drop-shadow-sm group-hover/btn:bg-black/60 transition">
+                                        点击在新窗口播放 {{ icon('link', 'w-3 h-3') }}
+                                    </span>
+                                </a>
+                            </div>
+                        </div>
+                        <div id="videoStrip" class="hidden mt-3 overflow-x-auto custom-scroll scroll-smooth snap-x snap-mandatory pb-2">
+                            <div id="videoTrack" class="flex min-w-max gap-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- 背景音频播放栏 -->
+                    <div id="audioContainer" class="hidden scroll-mt-24">
+                        <h4 class="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-2">{{ icon('music', 'w-4 h-4 text-slate-500') }} 背景音频</h4>
+                        <audio id="audioPlayer" controls referrerpolicy="no-referrer" class="w-full rounded-xl"></audio>
+                        <p id="audioPreviewNotice" class="hidden mt-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3.5 py-2.5 text-xs leading-relaxed text-slate-600"></p>
+                    </div>
+
+                    <!-- 平台字幕或歌词 -->
+                    <div id="subtitleContainer" class="hidden scroll-mt-24">
+                        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                            <h4 class="text-sm font-semibold text-slate-900 flex items-center gap-2">{{ icon('scroll', 'w-4 h-4 text-slate-500') }} 字幕/歌词 (<span id="subtitleCount">0</span>)</h4>
+                        </div>
+                        <div id="subtitleList" class="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-3 custom-scroll"></div>
+                    </div>
+
+                    <!-- 高清图集网格 -->
+                    <div id="imageContainer" class="hidden scroll-mt-24">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                            <h4 class="text-sm font-semibold text-slate-900 flex items-center gap-2">{{ icon('image', 'w-4 h-4 text-slate-500') }} 高清图集/封面 (<span id="imageCount">0</span>)</h4>
+                        </div>
+                        <div id="imageGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5"></div>
+                    </div>
+
+                    <!-- 无可用多媒体提示 -->
+                    <div id="emptyMediaNotice" class="hidden py-8 text-center text-slate-400 text-sm">未解析到可直观预览的多媒体资源</div>
+                </div>
+
+                <!-- JSON 结构视角 -->
+                <div id="viewJson" class="hidden p-5 sm:p-7">
+                    <pre class="rounded-2xl border border-slate-800 bg-slate-950 p-5 font-mono text-xs text-slate-200 overflow-x-auto max-h-[480px] custom-scroll leading-relaxed"><code id="jsonCode"></code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- 图片大图预览 Modal (Lightbox) -->
+        <div id="lightboxModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm p-4 flex flex-col items-center justify-center transition-all" onclick="closeLightbox()">
+            <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white/80 hover:text-white text-2xl font-bold bg-white/10 w-10 h-10 rounded-full flex items-center justify-center transition">&times;</button>
+            <img id="lightboxImg" src="" alt="" referrerpolicy="no-referrer" class="max-w-full max-h-[80vh] rounded-xl object-contain shadow-2xl" onclick="event.stopPropagation()">
+            <div class="mt-4 flex flex-wrap items-center justify-center gap-3" onclick="event.stopPropagation()">
+                <button id="lightboxCopyBtn" onclick="copyLightboxUrl()" class="rounded-xl bg-white/20 hover:bg-white/30 text-white px-4 py-2 text-xs font-semibold backdrop-blur-md transition inline-flex items-center gap-1.5">{{ icon('clipboard', 'w-3.5 h-3.5') }}复制图片链接</button>
+                <a id="lightboxOpenLink" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="rounded-xl bg-white/20 hover:bg-white/30 text-white px-4 py-2 text-xs font-semibold backdrop-blur-md transition inline-flex items-center gap-1.5">打开图片 ↗</a>
+                <button id="lightboxCopyLiveBtn" onclick="copyLightboxLiveUrl()" class="hidden rounded-xl bg-indigo-600/80 hover:bg-indigo-600 text-white px-4 py-2 text-xs font-semibold backdrop-blur-md transition inline-flex items-center gap-1.5">{{ icon('clipboard', 'w-3.5 h-3.5') }}复制实况视频</button>
+                <a id="lightboxOpenLiveLink" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="hidden rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-xs font-semibold shadow-md transition">打开实况 ↗</a>
+            </div>
+        </div>
+
+        <!-- 支持平台：双向跑马灯 -->
+        <section id="platforms" class="sec">
+            <div class="wrap flex flex-col lg:flex-row lg:items-end justify-between gap-4" data-reveal>
+                <div>
+                    <span class="sec-kicker">支持平台</span>
+                    <h2 class="sec-title">{{ platform_names|length }} 个平台，一个输入框</h2>
+                </div>
+                <p class="sec-desc lg:text-right">短视频、图文笔记、音乐、AI 创作平台都能用，不用记哪个平台去哪个网站。</p>
+            </div>
+            {% set half = (platform_names|length / 2)|round(0, 'ceil')|int %}
+            <div class="mt-8 space-y-3" data-reveal>
+                {% for row in [platform_names[:half], platform_names[half:]] %}
+                <div class="marquee {{ 'marquee--rev' if loop.index == 2 }}" style="--dur: {{ 70 if loop.index == 1 else 80 }}s">
+                    <div class="marquee-track">
+                        {% for _ in range(2) %}{% for name in row %}<span class="pf"{% if _ == 1 %} aria-hidden="true"{% endif %}><b style="--c:{{ palette.get(name, ['#0b65ff','#0e1525','#0ab3a8','#5b6475'][loop.index0 % 4]) }}">{{ name[0] }}</b>{{ name }}</span>{% endfor %}{% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="wrap mt-8" data-reveal>
+                <div class="stats">
+                    {% for num, unit, label in [(platform_names|length, '个', '支持的平台'), (10, '类', '可提取的内容类型'), (3, '步', '从复制到保存'), (0, '安装', '打开网页就能用')] %}
+                    <div class="stat">
+                        <div class="stat-num"><span data-count="{{ num }}">{{ num }}</span><small>{{ unit }}</small></div>
+                        <div class="stat-lbl">{{ label }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- 使用教程：三步 + 平台 Tabs -->
+        <section id="guide" class="sec wrap">
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-5" data-reveal>
+                <div>
+                    <span class="sec-kicker">使用教程</span>
+                    <h2 class="sec-title">三步保存，不用装任何东西</h2>
+                </div>
+                <div class="tabs" role="tablist" aria-label="选择平台查看分享入口">
+                    {% for key, label in [('douyin','抖音'), ('xhs','小红书'), ('bili','B站'), ('ks','快手')] %}
+                    <button type="button" role="tab" data-guide="{{ key }}" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ label }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="mt-8 grid md:grid-cols-3 gap-4">
+                <article class="step" data-reveal>
+                    <span class="step-no">1</span>
+                    <h3>在 App 里复制链接</h3>
+                    <p id="guideText">打开<b id="guideApp">抖音</b>作品，点右侧「<span id="guideBtn">分享</span>」，再点「复制链接」。</p>
+                    <div class="mock">
+                        <div class="text-[12px] text-slate-400" id="guideTitle">分享给朋友</div>
+                        <div class="mock-sheet">
+                            <div class="row">
+                                <div class="it"><span>{{ icon('users', 'w-4 h-4') }}</span>好友</div>
+                                <div class="it"><span>{{ icon('image', 'w-4 h-4') }}</span>朋友圈</div>
+                                <div class="it is-hit"><span>{{ icon('link', 'w-4 h-4') }}</span>复制链接</div>
+                                <div class="it"><span>{{ icon('tag', 'w-4 h-4') }}</span>更多</div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                <article class="step" data-reveal style="--reveal-delay:.08s">
+                    <span class="step-no">2</span>
+                    <h3>粘贴到社媒云</h3>
+                    <p>链接和整段分享文案都可以，社媒云会自动找出链接、识别平台。</p>
+                    <div class="mock">
+                        <div class="mock-input"><span id="guidePaste">7.22 复制打开抖音，看看【阿木的作品】https://v.douyin.com/…</span><span class="caret"></span></div>
+                        <div class="mock-btn">开始解析</div>
+                    </div>
+                </article>
+                <article class="step" data-reveal style="--reveal-delay:.16s">
+                    <span class="step-no">3</span>
+                    <h3>预览并保存</h3>
+                    <p>视频、图集、实况照片、背景音乐分开展示，点开即可预览、复制链接或保存。</p>
+                    <div class="mock">
+                        <div class="mock-res">
+                            <div class="m v">视频<em>1080P · 00:32</em></div>
+                            <div class="m">图集<em>9 张</em></div>
+                            <div class="m t">背景音乐<em>原声</em></div>
+                            <div class="m">文案<em>可一键复制</em></div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- 能保存什么 -->
+        <section id="features" class="sec wrap">
+            <div data-reveal>
+                <span class="sec-kicker">能保存什么</span>
+                <h2 class="sec-title">一条链接里的东西，都给你拆好</h2>
+                <p class="sec-desc">同一条分享链接里的视频、图片、声音和文字，会按类型分开整理好，挑你要的保存。</p>
+            </div>
+            <div class="mt-8 grid lg:grid-cols-3 gap-4">
+                <article class="feat feat--brand lg:col-span-2" data-reveal>
+                    <h3>视频</h3>
+                    <p>尽量获取平台提供的最高清晰度；合集、多段视频会全部列出来，逐个预览。</p>
+                    <div class="player"><span class="q">1080P</span><span class="play"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg></span><span class="bar"><i></i></span></div>
+                </article>
+                <article class="feat" data-reveal style="--reveal-delay:.08s">
+                    <h3>图集与实况照片</h3>
+                    <p>笔记里的每一张图都单独给出，实况照片连同动态视频一起保存。</p>
+                    <div class="gallery"><span></span><span class="live"></span><span></span></div>
+                </article>
+                <article class="feat feat--ink" data-reveal>
+                    <h3>背景音乐</h3>
+                    <p>喜欢视频里的配乐？单独提取音频，音乐平台的歌曲链接也能识别。</p>
+                    <div class="wave">{% for h in [40,70,55,90,62,35,80,58,95,45,72,50,85,38,66,52,78,44] %}<i style="--h:{{ h }}%;--d:{{ (loop.index0 * 0.09)|round(2) }}s"></i>{% endfor %}</div>
+                </article>
+                <article class="feat lg:col-span-2" data-reveal style="--reveal-delay:.08s">
+                    <h3>文案、字幕与作者</h3>
+                    <p>作品标题、正文文案、平台自带字幕或歌词按时间轴整理，作者昵称和头像也一并给出。</p>
+                    <div class="subs">
+                        <div><code>00:00.6</code><span>海风吹过来的时候</span></div>
+                        <div><code>00:02.1</code><span>太阳刚好落到海平面</span></div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- 常见问题 -->
+        <section id="faq" class="sec wrap pb-24" style="max-width:880px">
+            <div class="text-center" data-reveal>
+                <span class="sec-kicker">常见问题</span>
+                <h2 class="sec-title">使用前你可能想知道</h2>
+            </div>
+            <div class="mt-8 space-y-3">
+                {% for q, a in [
+                    ('保存下来的视频是高清无水印的吗？', '社媒云会尽量获取平台当前提供的原始画质，不会再压缩一遍。不过清晰度和是否带水印取决于作品本身和平台的规则，个别作品可能只能拿到带水印或较低清晰度的版本。'),
+                    ('解析失败了怎么办？', '先确认作品是公开可见的（私密、仅好友可见、已删除的作品无法解析），再检查复制的是不是完整的分享链接。平台偶尔调整规则会导致暂时失败，可以稍后再试。'),
+                    ('为什么过一段时间链接就打不开了？', '视频和图片的地址由平台提供，通常带有时效，过期后就会失效。解析完成后请尽快预览和保存。'),
+                    ('需要注册吗？有次数限制吗？', '不注册也可以直接在首页解析，为防止滥用，同一网络每分钟最多解析 5 次。注册登录后可以在控制台查看自己的解析记录。'),
+                    ('可以保存别人的作品吗？', '请只保存你自己发布的、或已获得作者授权的内容，用于个人学习与收藏。转载、二次发布或商用前请先取得原作者许可，并遵守各平台的用户协议。')] %}
+                <details class="faq-item" data-reveal {{ 'open' if loop.first }}>
+                    <summary><span>{{ q }}</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></summary>
+                    <p>{{ a }}</p>
+                </details>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+    <div id="landingToastContainer" class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-2.5 pointer-events-none w-auto max-w-[90vw]"></div>
+
+    <footer class="border-t border-[#e6eaf2] bg-white">
+        <div class="wrap py-10 flex flex-col md:flex-row gap-8 justify-between">
+            <div class="max-w-sm">
+                <a href="#top" class="brand"><span class="brand-tile"><img src="{{ url_for('static', filename='images/brand-logo.png') }}" alt=""></span>社媒云</a>
+                <p class="mt-3 text-sm leading-6 text-[#5b6475]">复制链接，一键保存社交媒体上的视频和图片。请仅保存自有或已获授权的内容，尊重原作者版权。</p>
+            </div>
+            <div class="flex gap-14 text-sm">
+                <div class="space-y-2.5">
+                    <div class="font-semibold text-[#0e1525]">产品</div>
+                    <a href="#parser" class="block text-[#5b6475] hover:text-[#0b65ff]">在线解析</a>
+                    <a href="#platforms" class="block text-[#5b6475] hover:text-[#0b65ff]">支持平台</a>
+                    <a href="#guide" class="block text-[#5b6475] hover:text-[#0b65ff]">使用教程</a>
+                </div>
+                <div class="space-y-2.5">
+                    <div class="font-semibold text-[#0e1525]">账号</div>
+                    <a href="{{ url_for('auth.login') }}" class="block text-[#5b6475] hover:text-[#0b65ff]">登录</a>
+                    <a href="{{ url_for('auth.register') }}" class="block text-[#5b6475] hover:text-[#0b65ff]">注册</a>
+                    <a href="#faq" class="block text-[#5b6475] hover:text-[#0b65ff]">常见问题</a>
+                </div>
+            </div>
+        </div>
+        <div class="wrap py-5 border-t border-[#e6eaf2] flex flex-col sm:flex-row gap-2 justify-between text-xs text-[#8b93a5]">
+            <span>© {{ current_year }} 社媒云</span>
+            <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full {{ 'bg-emerald-500' if api_enabled else 'bg-amber-500' }}"></span>{{ '服务正常' if api_enabled else '服务维护中' }}</span>
+        </div>
+    </footer>
+    <script>
+        const input=document.getElementById('parseUrl');
+        let lastParsedData = null;
+        let activeLightboxUrl = '';
+        let currentVideoUrls = [];
+        let currentCoverUrl = '';
+        let activeVideoIndex = 0;
+        const iconMarkup = (name, className) => `<svg class="${className}" aria-hidden="true"><use href="{{ url_for('static', filename='icons.svg') }}#icon-${name}"></use></svg>`;
+
+        function showToast(message, type = 'success', duration = 3000) {
+            const container = document.getElementById('landingToastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            const isError = type === 'error';
+            const isWarning = type === 'warning';
+            const iconColor = isError ? 'text-red-500' : isWarning ? 'text-amber-500' : 'text-emerald-500';
+            const icon = isError ? iconMarkup('circle-x', `w-4 h-4 shrink-0 ${iconColor}`) : isWarning ? iconMarkup('alert', `w-4 h-4 shrink-0 ${iconColor}`) : iconMarkup('check', `w-4 h-4 shrink-0 ${iconColor}`);
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-slate-200/80 bg-white/95 backdrop-blur-md shadow-lg shadow-slate-900/5 text-xs sm:text-sm font-medium text-slate-800 transition-all duration-300 transform -translate-y-2 opacity-0`;
+            toast.innerHTML = `${icon}<span>${message}</span>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('-translate-y-2', 'opacity-0');
+            });
+            setTimeout(() => {
+                toast.classList.add('-translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        function clearParser(){
+            input.value = '';
+            document.getElementById('errorState').classList.add('hidden');
+            input.focus();
+        }
+
+        function fillSampleUrl(){
+            input.value = 'https://www.bilibili.com/video/BV1xx411c7mD';
+            document.getElementById('errorState').classList.add('hidden');
+            input.focus();
+            showToast('已填入示例链接，可直接点击“开始解析”', 'success', 2500);
+        }
+        async function pasteFromClipboard(){
+            try {
+                input.value = await navigator.clipboard.readText();
+                    input.focus();
+                showToast('已从剪贴板粘贴内容', 'success', 2000);
+            } catch {
+                showToast('无法直接读取剪贴板，请使用快捷键 Ctrl+V / ⌘+V 粘贴', 'warning', 3500);
+            }
+        }
+
+        function copyText(text, successMsg){
+            if(!text) return;
+            if(navigator.clipboard && navigator.clipboard.writeText){
+                navigator.clipboard.writeText(text).then(()=>{
+                    showToast(successMsg || '已复制到剪贴板', 'success');
+                }).catch(()=>{
+                    fallbackCopy(text, successMsg);
+                });
+            } else {
+                fallbackCopy(text, successMsg);
+            }
+        }
+
+        function fallbackCopy(text, successMsg){
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                ta.style.top = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                if(ok){
+                    showToast(successMsg || '已复制到剪贴板', 'success');
+                    return;
+                }
+            } catch(e){}
+            showToast('复制失败，请手动选择复制', 'error');
+        }
+
+        function copyCurrentJson(){
+            if(lastParsedData){
+                copyText(JSON.stringify(lastParsedData, null, 2), '已复制完整 API 返回 JSON 数据');
+            }
+        }
+
+        function uniqueMediaUrls(urls){
+            return [...new Set(urls.filter(url => typeof url === 'string' && url.trim()).map(url => url.trim()))];
+        }
+
+        function formatCopyValue(value, fallback = '未获取到'){
+            if(typeof value === 'number' && Number.isFinite(value)) return String(value);
+            if(typeof value !== 'string') return fallback;
+            const normalized = value.replace(/\s+/g, ' ').trim();
+            return normalized || fallback;
+        }
+
+        function formatCopyMultilineValue(value){
+            return typeof value === 'string' ? value.trim() : '';
+        }
+
+        function formatCopyLink(url){
+            const normalized = formatCopyValue(url, '');
+            return normalized ? `[${normalized}]` : '未获取到';
+        }
+
+        function formatCopySubtitle(subtitle){
+            if(!subtitle || typeof subtitle.text !== 'string') return '';
+            const text = formatCopyMultilineValue(subtitle.text);
+            if(!text) return '';
+            const start = Number(subtitle.start);
+            const end = Number(subtitle.end);
+            if(!Number.isFinite(start) || start < 0) return `- ${text}`;
+            const timeRange = Number.isFinite(end) && end >= start
+                ? `${formatSubtitleTime(start)} - ${formatSubtitleTime(end)}`
+                : formatSubtitleTime(start);
+            return `- ${timeRange} ${text}`;
+        }
+
+        function copyFormattedResult(){
+            if(!lastParsedData) return;
+            const author = lastParsedData.author || {};
+            const authorName = author.nickname || author.author_id;
+            const primaryVideoUrl = lastParsedData.video_url
+                || (lastParsedData.video_list || []).find(url => typeof url === 'string' && url.trim());
+            const formattedContent = [
+                `标题：${formatCopyValue(lastParsedData.title)}`,
+                `平台：${formatCopyValue(lastParsedData.platform)}`,
+                `作者：${formatCopyValue(authorName)}`,
+                `封面：${formatCopyLink(lastParsedData.cover_url)}`,
+                `视频：${formatCopyLink(primaryVideoUrl)}`,
+                `音乐：${formatCopyLink(lastParsedData.audio_url)}`,
+            ];
+
+            if(lastParsedData.video_id){
+                formattedContent.push(`作品 ID：${formatCopyValue(lastParsedData.video_id)}`);
+            }
+            const desc = formatCopyMultilineValue(lastParsedData.desc);
+            if(desc && desc !== formatCopyMultilineValue(lastParsedData.title)){
+                formattedContent.push(`正文：${desc}`);
+            }
+            if(author.author_id && author.author_id !== authorName){
+                formattedContent.push(`作者 ID：${formatCopyValue(author.author_id)}`);
+            }
+            if(author.avatar){
+                formattedContent.push(`作者头像：${formatCopyLink(author.avatar)}`);
+            }
+
+            const videoList = uniqueMediaUrls(lastParsedData.video_list || []);
+            if(videoList.length){
+                formattedContent.push('视频列表：');
+                videoList.forEach((url, index) => formattedContent.push(`- 视频 ${index + 1}：${formatCopyLink(url)}`));
+            }
+
+            const imageList = Array.isArray(lastParsedData.image_list) ? lastParsedData.image_list : [];
+            const formattedImages = imageList.flatMap((item, index) => {
+                if(typeof item === 'string' && item.trim()) return [`- 图片 ${index + 1}：${formatCopyLink(item)}`];
+                if(!item || typeof item !== 'object') return [];
+                const entries = [];
+                if(item.url) entries.push(`- 图片 ${index + 1}：${formatCopyLink(item.url)}`);
+                if(item.live_photo_url) entries.push(`- Live Photo ${index + 1}：${formatCopyLink(item.live_photo_url)}`);
+                return entries;
+            });
+            if(formattedImages.length){
+                formattedContent.push('图集：', ...formattedImages);
+            }
+
+            const formattedSubtitles = (Array.isArray(lastParsedData.subtitles) ? lastParsedData.subtitles : [])
+                .map(formatCopySubtitle)
+                .filter(Boolean);
+            if(formattedSubtitles.length){
+                formattedContent.push('字幕/歌词：', ...formattedSubtitles);
+            }
+
+            formattedContent.push('【使用声明】上述内容及素材版权均归原平台及创作者所有。请尊重原创，仅供个人学习、赏析使用，严禁用于任何商业牟利或非法用途。');
+            copyText(formattedContent.join('\n'), '已格式化复制解析结果');
+        }
+
+        function copyCurrentVideoUrl(){
+            const url = currentVideoUrls[activeVideoIndex];
+            if(url) copyText(url, '已复制当前视频链接');
+        }
+
+        function showVideoFallback(selectedUrl){
+            const videoPlayer = document.getElementById('videoPlayer');
+            const videoFallbackContainer = document.getElementById('videoFallbackContainer');
+            const videoCoverBg = document.getElementById('videoCoverBg');
+            const videoCoverImg = document.getElementById('videoCoverImg');
+            const videoDefaultPlaceholder = document.getElementById('videoDefaultPlaceholder');
+            const videoFallbackPlayBtn = document.getElementById('videoFallbackPlayBtn');
+
+            videoPlayer.pause();
+            videoPlayer.classList.add('hidden');
+            videoFallbackContainer.classList.remove('hidden');
+
+            if(videoFallbackPlayBtn) videoFallbackPlayBtn.href = selectedUrl;
+
+            if(currentCoverUrl){
+                videoDefaultPlaceholder.classList.add('hidden');
+                videoCoverImg.onload = () => {
+                    videoCoverImg.classList.remove('hidden');
+                    videoCoverBg.classList.remove('hidden');
+                };
+                videoCoverImg.onerror = () => {
+                    videoCoverImg.classList.add('hidden');
+                    videoCoverBg.classList.add('hidden');
+                    videoDefaultPlaceholder.classList.remove('hidden');
+                };
+                videoCoverImg.src = currentCoverUrl;
+                videoCoverBg.src = currentCoverUrl;
+                if(videoCoverImg.complete && videoCoverImg.naturalWidth > 0){
+                    videoCoverImg.classList.remove('hidden');
+                    videoCoverBg.classList.remove('hidden');
+                }
+            } else {
+                videoCoverImg.classList.add('hidden');
+                videoCoverBg.classList.add('hidden');
+                videoDefaultPlaceholder.classList.remove('hidden');
+            }
+        }
+
+        function selectVideo(index, autoplay = false){
+            if(index < 0 || index >= currentVideoUrls.length) return;
+            activeVideoIndex = index;
+            const videoPlayer = document.getElementById('videoPlayer');
+            const videoFallbackContainer = document.getElementById('videoFallbackContainer');
+            const videoOpenDirectLink = document.getElementById('videoOpenDirectLink');
+            const selectedUrl = currentVideoUrls[index];
+
+            videoFallbackContainer.classList.add('hidden');
+            videoPlayer.classList.remove('hidden');
+            if(videoOpenDirectLink) videoOpenDirectLink.href = selectedUrl;
+            videoPlayer.onerror = () => {
+                if(currentVideoUrls[activeVideoIndex] !== selectedUrl) return;
+                showVideoFallback(selectedUrl);
+            };
+            videoPlayer.src = selectedUrl;
+            videoPlayer.load();
+
+            document.querySelectorAll('[data-video-index]').forEach((button, buttonIndex) => {
+                const active = buttonIndex === index;
+                button.className = active
+                    ? 'snap-start min-w-[112px] rounded-xl border border-indigo-300 bg-indigo-50 px-4 py-3 text-left text-xs font-bold text-brand shadow-sm transition'
+                    : 'snap-start min-w-[112px] rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-xs font-semibold text-slate-600 hover:border-indigo-200 hover:text-brand transition';
+                button.setAttribute('aria-current', active ? 'true' : 'false');
+            });
+            const activeButton = document.querySelector(`[data-video-index="${index}"]`);
+            activeButton?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+            document.getElementById('previousVideoBtn').disabled = index === 0;
+            document.getElementById('nextVideoBtn').disabled = index === currentVideoUrls.length - 1;
+            if(autoplay) videoPlayer.play().catch(() => {});
+        }
+
+        function stepVideo(offset){
+            selectVideo(activeVideoIndex + offset, true);
+        }
+
+        function switchResultTab(tab){
+            const btnVisual = document.getElementById('tabVisual');
+            const btnJson = document.getElementById('tabJson');
+            const viewVisual = document.getElementById('viewVisual');
+            const viewJson = document.getElementById('viewJson');
+            if(tab === 'visual'){
+                btnVisual.className = 'py-2.5 border-b-2 border-brand text-brand font-bold transition';
+                btnJson.className = 'py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition';
+                viewVisual.classList.remove('hidden');
+                viewJson.classList.add('hidden');
+            } else {
+                btnJson.className = 'py-2.5 border-b-2 border-brand text-brand font-bold transition';
+                btnVisual.className = 'py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition';
+                viewJson.classList.remove('hidden');
+                viewVisual.classList.add('hidden');
+            }
+        }
+
+        let activeLightboxLivePhotoUrl = '';
+
+        function openLightbox(url, livePhotoUrl = ''){
+            activeLightboxUrl = url;
+            activeLightboxLivePhotoUrl = livePhotoUrl;
+            const modal = document.getElementById('lightboxModal');
+            const img = document.getElementById('lightboxImg');
+            const openLink = document.getElementById('lightboxOpenLink');
+            const copyLiveBtn = document.getElementById('lightboxCopyLiveBtn');
+            const openLiveLink = document.getElementById('lightboxOpenLiveLink');
+            img.src = url;
+            openLink.href = url;
+
+            if(livePhotoUrl){
+                copyLiveBtn.classList.remove('hidden');
+                openLiveLink.href = livePhotoUrl;
+                openLiveLink.classList.remove('hidden');
+            } else {
+                copyLiveBtn.classList.add('hidden');
+                openLiveLink.classList.add('hidden');
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeLightbox(){
+            document.getElementById('lightboxModal').classList.add('hidden');
+            document.getElementById('lightboxImg').src = '';
+        }
+
+        function copyLightboxLiveUrl(){
+            if(activeLightboxLivePhotoUrl){
+                copyText(activeLightboxLivePhotoUrl, '已复制 Live Photo 实况视频直链');
+            }
+        }
+
+        function formatSubtitleTime(seconds){
+            if(!Number.isFinite(seconds) || seconds < 0) return '';
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds - minutes * 60;
+            return `${String(minutes).padStart(2, '0')}:${remainingSeconds.toFixed(3).padStart(6, '0')}`;
+        }
+
+        function normalizeSubtitles(subtitles){
+            if(!Array.isArray(subtitles)) return [];
+            return subtitles.flatMap(subtitle => {
+                if(!subtitle || typeof subtitle.text !== 'string') return [];
+                const text = subtitle.text.trim();
+                const start = Number(subtitle.start);
+                const end = Number(subtitle.end);
+                if(!text) return [];
+                const hasStart = Number.isFinite(start) && start >= 0;
+                return [{
+                    text,
+                    start: hasStart ? start : null,
+                    end: hasStart && Number.isFinite(end) && end >= start ? end : null,
+                }];
+            });
+        }
+
+        function copyLightboxUrl(){
+            if(activeLightboxUrl){
+                copyText(activeLightboxUrl, '已复制大图链接');
+            }
+        }
+
+        function renderResult(data){
+            lastParsedData = data;
+            document.getElementById('resultPlatform').textContent = data.platform || '未知平台';
+            document.getElementById('resultTitle').textContent = data.title || '未获取到标题';
+            const desc = typeof data.desc === 'string' ? data.desc.trim() : '';
+            document.getElementById('resultDescText').textContent = desc;
+            const title = typeof data.title === 'string' ? data.title.trim() : '';
+            document.getElementById('resultDesc').classList.toggle('hidden', !desc || desc === title);
+            const author = data.author && typeof data.author === 'object' ? data.author : {};
+            const authorName = author.nickname || author.author_id || '';
+            document.getElementById('resultAuthor').textContent = authorName;
+            const authorAvatar = document.getElementById('resultAuthorAvatar');
+            const avatarUrl = typeof author.avatar === 'string' ? author.avatar.trim() : '';
+            if(avatarUrl){
+                authorAvatar.alt = authorName ? `${authorName}的头像` : '作者头像';
+                authorAvatar.onerror = () => {
+                    authorAvatar.classList.add('hidden');
+                    authorAvatar.removeAttribute('src');
+                };
+                authorAvatar.src = avatarUrl;
+                authorAvatar.classList.remove('hidden');
+            } else {
+                authorAvatar.onerror = null;
+                authorAvatar.removeAttribute('src');
+                authorAvatar.alt = '';
+                authorAvatar.classList.add('hidden');
+            }
+
+            currentCoverUrl = (typeof data.cover_url === 'string' && data.cover_url.trim())
+                || (typeof data.cover === 'string' && data.cover.trim())
+                || (Array.isArray(data.image_list) && data.image_list.length > 0 && typeof data.image_list[0] === 'string' ? data.image_list[0].trim() : '')
+                || '';
+            currentVideoUrls = uniqueMediaUrls([data.video_url, ...(data.video_list || [])]);
+
+            // 1. 视频渲染
+            const videoContainer = document.getElementById('videoContainer');
+            const videoPlayer = document.getElementById('videoPlayer');
+            const videoFallbackContainer = document.getElementById('videoFallbackContainer');
+            const videoStrip = document.getElementById('videoStrip');
+            const videoTrack = document.getElementById('videoTrack');
+            const previousVideoBtn = document.getElementById('previousVideoBtn');
+            const nextVideoBtn = document.getElementById('nextVideoBtn');
+            activeVideoIndex = 0;
+            videoTrack.replaceChildren();
+            document.getElementById('videoCount').textContent = currentVideoUrls.length;
+            if(currentVideoUrls.length){
+                currentVideoUrls.forEach((url, index) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.dataset.videoIndex = index;
+                    button.innerHTML = `<span class="block text-[10px] font-medium text-slate-400">${index + 1} / ${currentVideoUrls.length}</span><span class="mt-1 block">视频 ${index + 1}</span>`;
+                    button.onclick = () => {
+                        selectVideo(index, true);
+                        videoContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    };
+                    videoTrack.appendChild(button);
+                });
+                const hasMultipleVideos = currentVideoUrls.length > 1;
+                videoStrip.classList.toggle('hidden', !hasMultipleVideos);
+                previousVideoBtn.classList.toggle('hidden', !hasMultipleVideos);
+                nextVideoBtn.classList.toggle('hidden', !hasMultipleVideos);
+                selectVideo(0);
+                videoContainer.classList.remove('hidden');
+            } else {
+                videoPlayer.pause();
+                videoPlayer.removeAttribute('src');
+                videoPlayer.load();
+                videoPlayer.classList.remove('hidden');
+                videoFallbackContainer.classList.add('hidden');
+                document.getElementById('videoOpenDirectLink').removeAttribute('href');
+                videoStrip.classList.add('hidden');
+                previousVideoBtn.classList.add('hidden');
+                nextVideoBtn.classList.add('hidden');
+                videoContainer.classList.add('hidden');
+            }
+
+            // 2. 音频渲染
+            const audioContainer = document.getElementById('audioContainer');
+            const audioPlayer = document.getElementById('audioPlayer');
+            const audioNotice = document.getElementById('audioPreviewNotice');
+            if(data.audio_url){
+                audioNotice.classList.add('hidden');
+                audioPlayer.onerror = () => {
+                    audioNotice.textContent = '该音频直链暂时无法在浏览器中预览，可能已过期或被平台的访问策略限制；解析结果仍可在 JSON 中查看或重新获取。';
+                    audioNotice.classList.remove('hidden');
+                };
+                audioPlayer.src = data.audio_url;
+                audioContainer.classList.remove('hidden');
+            } else {
+                audioPlayer.pause();
+                audioPlayer.src = '';
+                audioNotice.classList.add('hidden');
+                audioContainer.classList.add('hidden');
+            }
+
+            // 3. 字幕/歌词渲染
+            const subtitleContainer = document.getElementById('subtitleContainer');
+            const subtitleList = document.getElementById('subtitleList');
+            const subtitles = normalizeSubtitles(data.subtitles);
+            subtitleList.replaceChildren();
+            document.getElementById('subtitleCount').textContent = subtitles.length;
+            if(subtitles.length){
+                subtitles.forEach((subtitle, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-start gap-3 rounded-xl bg-white px-3 py-2.5 text-sm shadow-sm ring-1 ring-slate-200/70';
+
+                    const time = document.createElement('span');
+                    time.className = 'shrink-0 font-mono text-xs leading-5 text-indigo-600';
+                    time.textContent = subtitle.start === null
+                        ? '未标注时间'
+                        : subtitle.end === null
+                            ? formatSubtitleTime(subtitle.start)
+                            : `${formatSubtitleTime(subtitle.start)} - ${formatSubtitleTime(subtitle.end)}`;
+
+                    const text = document.createElement('p');
+                    text.className = 'min-w-0 flex-1 leading-5 text-slate-700 whitespace-pre-wrap break-words';
+                    text.textContent = subtitle.text;
+                    text.setAttribute('aria-label', `第 ${index + 1} 条字幕`);
+
+                    row.append(time, text);
+                    subtitleList.appendChild(row);
+                });
+                subtitleContainer.classList.remove('hidden');
+            } else {
+                subtitleContainer.classList.add('hidden');
+            }
+
+            // 4. 图片网格渲染
+            const imageContainer = document.getElementById('imageContainer');
+            const imageGrid = document.getElementById('imageGrid');
+            const imageCount = document.getElementById('imageCount');
+            imageGrid.replaceChildren();
+
+            const uniqueImageList = [];
+            const seenUrls = new Set();
+
+            (data.image_list || []).forEach((item, idx) => {
+                let url = '';
+                let livePhoto = '';
+                if(typeof item === 'string'){
+                    url = item.trim();
+                } else if(item && typeof item === 'object'){
+                    url = (item.url || '').trim();
+                    livePhoto = (item.live_photo_url || '').trim();
+                }
+                if(url && !seenUrls.has(url)){
+                    seenUrls.add(url);
+                    const isLive = Boolean(livePhoto);
+                    uniqueImageList.push({
+                        label: isLive ? `Live Photo ${idx + 1}` : `图片 ${idx + 1}`,
+                        url: url,
+                        livePhoto: livePhoto
+                    });
+                }
+            });
+
+            const coverUrl = typeof data.cover_url === 'string' ? data.cover_url.trim() : '';
+            if(coverUrl && !seenUrls.has(coverUrl)){
+                seenUrls.add(coverUrl);
+                uniqueImageList.unshift({ label: '封面', url: coverUrl, livePhoto: '' });
+            }
+            if(uniqueImageList.length > 0){
+                imageCount.textContent = uniqueImageList.length;
+                uniqueImageList.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square shadow-sm cursor-pointer';
+
+                    const img = document.createElement('img');
+                    img.src = item.url;
+                    img.referrerPolicy = 'no-referrer';
+                    img.loading = 'lazy';
+                    img.className = 'w-full h-full object-cover transition duration-300 group-hover:scale-105';
+                    img.onclick = () => openLightbox(item.url, item.livePhoto);
+                    card.appendChild(img);
+
+                    let cardVideo = null;
+                    if(item.livePhoto){
+                        cardVideo = document.createElement('video');
+                        cardVideo.src = item.livePhoto;
+                        cardVideo.loop = true;
+                        cardVideo.muted = true;
+                        cardVideo.playsInline = true;
+                        cardVideo.referrerPolicy = 'no-referrer';
+                        cardVideo.className = 'absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100';
+                        card.appendChild(cardVideo);
+
+                        card.onmouseenter = () => cardVideo.play().catch(() => {});
+                        card.onmouseleave = () => { cardVideo.pause(); cardVideo.currentTime = 0; };
+                    }
+
+                    const badge = document.createElement('span');
+                    if(item.livePhoto){
+                        badge.className = 'absolute top-2 left-2 rounded-md bg-indigo-600/90 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-md flex items-center gap-1 shadow-sm';
+                        badge.innerHTML = `<svg class="w-3 h-3 fill-current animate-pulse" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="2 2"/></svg>${item.label}`;
+                    } else {
+                        badge.className = 'absolute top-2 left-2 rounded-md bg-slate-900/65 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md';
+                        badge.textContent = item.label;
+                    }
+
+                    const overlay = document.createElement('div');
+                    overlay.className = 'absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition duration-200 flex items-center justify-center gap-2 p-2';
+
+                    const btnZoom = document.createElement('button');
+                    btnZoom.className = 'rounded-xl bg-white/95 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-md hover:bg-white transition flex items-center gap-1.5';
+                    btnZoom.innerHTML = `${iconMarkup('search', 'w-3.5 h-3.5')}放大`;
+                    btnZoom.onclick = (e) => { e.stopPropagation(); openLightbox(item.url, item.livePhoto); };
+
+                    overlay.appendChild(btnZoom);
+
+                    img.onerror = () => {
+                        img.remove();
+                        if(cardVideo) cardVideo.remove();
+                        overlay.remove();
+                        badge.remove();
+                        card.className = 'rounded-2xl border border-slate-200/80 bg-slate-50/80 aspect-square p-4 flex items-center justify-center text-center text-xs leading-5 text-slate-500';
+                        card.textContent = '图片直链已失效或被平台访问策略限制。请重新解析后再试。';
+                    };
+                    card.append(badge, overlay);
+                    imageGrid.appendChild(card);
+                });
+                imageContainer.classList.remove('hidden');
+            } else {
+                imageContainer.classList.add('hidden');
+            }
+
+            // 5. 无资源提示
+            const emptyNotice = document.getElementById('emptyMediaNotice');
+            if(currentVideoUrls.length === 0 && !data.audio_url && uniqueImageList.length === 0){
+                emptyNotice.classList.remove('hidden');
+            } else {
+                emptyNotice.classList.add('hidden');
+            }
+
+            // 6. JSON 数据渲染
+            document.getElementById('jsonCode').textContent = JSON.stringify(data, null, 2);
+
+            // 显示结果区并默认显示视觉预览 Tab
+            switchResultTab('visual');
+            document.getElementById('resultState').classList.remove('hidden');
+        }
+
+        function formatUserErrorMessage(payload) {
+            if (!payload || typeof payload !== 'object') {
+                return {
+                    title: '解析未完成',
+                    message: '未能成功获取媒体信息，请检查链接后重试。',
+                    hint: '建议确认原作品在对应 App 中是否公开可见。',
+                    tag: '未知状态'
+                };
+            }
+            const code = payload.error_code || '';
+            const rawDesc = typeof payload.retdesc === 'string' ? payload.retdesc.trim() : '';
+
+            // 1. 凭据/Cookie 要求（敏感信息脱敏，屏蔽环境变量名与服务端配置）
+            if (code.endsWith('_COOKIE_REQUIRED') || /cookie|凭证|yuanbao_cookie/i.test(rawDesc)) {
+                return {
+                    title: '目标平台在线体验受限',
+                    message: '该平台当前启用了较严格的访问安全策略或需要环境授权，首页在线体验暂无法直接提取。',
+                    hint: '建议尝试解析抖音、B站、快手等平台公开作品体验。',
+                    tag: '平台受限'
+                };
+            }
+
+            // 2. 链接与文本格式
+            if (code === 'INVALID_TEXT' || code === 'URL_NOT_FOUND') {
+                return {
+                    title: '未检测到有效链接',
+                    message: '请粘贴包含完整 HTTP/HTTPS 分享链接的文案后再试。',
+                    hint: '支持直接粘贴客户端复制的完整分享口令（如“7.12 xxx 复制此链接打开…”）。',
+                    tag: '链接格式'
+                };
+            }
+            if (code === 'TEXT_TOO_LONG') {
+                return {
+                    title: '分享内容过长',
+                    message: '粘贴的文本长度超出了单次解析限制（2000 字符以内）。',
+                    hint: '建议仅保留核心分享链接或精简前后的多余文字。',
+                    tag: '超长限制'
+                };
+            }
+            if (code === 'REDIRECT_FAILED') {
+                return {
+                    title: '分享链接无法访问',
+                    message: '无法连通或识别该分享链接，可能是短链已失效或目标平台拒绝了访问。',
+                    hint: '请在手机浏览器或原 App 中确认该链接是否能正常打开。',
+                    tag: '访问失败'
+                };
+            }
+            if (code === 'PLATFORM_NOT_SUPPORTED') {
+                return {
+                    title: '暂未支持该平台',
+                    message: '当前尚未支持提取该平台的内容，平台能力会持续更新完善。',
+                    hint: '支持的平台列表可查阅下方“平台能力”板块。',
+                    tag: '平台支持'
+                };
+            }
+            if (code === 'PLATFORM_DISABLED') {
+                return {
+                    title: '该平台解析暂不可用',
+                    message: '该平台的解析服务目前处于维护或临时下线状态。',
+                    hint: '请尝试体验其他平台的作品，或稍后再试。',
+                    tag: '维护中'
+                };
+            }
+
+            // 3. 作品自身状态（删除/私密/无媒体）
+            if (code === 'MEDIA_DELETED_OR_PRIVATE') {
+                return {
+                    title: '作品不可查看',
+                    message: '该内容可能已被原作者删除，或者属于仅自己/好友可见的私密作品。',
+                    hint: '请确保该作品在对应平台为全网公开可见状态。',
+                    tag: '作品状态'
+                };
+            }
+            if (code === 'NO_MEDIA_IN_CONTENT') {
+                return {
+                    title: '未包含多媒体资源',
+                    message: '该分享内容仅包含纯文字对话，未检测到可提取的视频、音频或图片。',
+                    hint: '请尝试分享包含图片或视频的作品。',
+                    tag: '无多媒体'
+                };
+            }
+
+            // 4. 频率与服务状态
+            if (code === 'RATE_LIMITED') {
+                return {
+                    title: '体验频率受限',
+                    message: '为保障公共演示体验稳定，首页在线体验已达到短时频控上限。',
+                    hint: '请稍候 1 分钟后再试；或注册账号获取专属 API Key 进行调用。',
+                    tag: '频控限制'
+                };
+            }
+            if (code === 'API_DISABLED' || code === 'DEMO_DISABLED') {
+                return {
+                    title: '在线体验维护中',
+                    message: '在线解析体验当前正在系统维护中，暂时无法处理体验请求。',
+                    hint: '请稍后再试或联系系统管理员。',
+                    tag: '服务维护'
+                };
+            }
+            if (code === 'INVALID_REQUEST') {
+                return {
+                    title: '请求格式异常',
+                    message: '体验请求参数异常，请刷新页面后重新输入。',
+                    hint: '建议直接粘贴分享链接重试。',
+                    tag: '参数异常'
+                };
+            }
+            if (code === 'MEDIA_NOT_FOUND' || code === 'INTERNAL_ERROR') {
+                return {
+                    title: '提取媒体内容失败',
+                    message: '暂时未能成功提取到媒体直链，可能是目标平台临时风控或网络波动。',
+                    hint: '建议稍后重试，或尝试其他平台/作者的公开作品。',
+                    tag: '提取失败'
+                };
+            }
+
+            // 5. 兜底敏感词与技术黑话过滤
+            if (/cookie|json|sql|traceback|500|exception|bearer|token|auth/i.test(rawDesc)) {
+                return {
+                    title: '解析暂时遇到问题',
+                    message: '未能成功获取媒体信息，请检查链接后重试。',
+                    hint: '建议确认原作品在对应 App 中是否公开可见。',
+                    tag: '解析异常'
+                };
+            }
+
+            return {
+                title: '解析未完成',
+                message: rawDesc || '未能成功获取媒体信息，请检查链接后重试。',
+                hint: '建议确认原作品在对应 App 中是否公开可见。',
+                tag: '提示'
+            };
+        }
+
+        function displayError(info) {
+            const error = document.getElementById('errorState');
+            const errorTitle = document.getElementById('errorTitle');
+            const errorMsg = document.getElementById('errorMsg');
+            const errorHint = document.getElementById('errorHint');
+            const errorTag = document.getElementById('errorTag');
+
+            if (errorTitle) errorTitle.textContent = info.title || '解析失败';
+            if (errorMsg) errorMsg.textContent = info.message || '请检查链接后重试';
+            if (errorHint) errorHint.textContent = info.hint || '建议确认原作品在对应 App 中是否公开可见。';
+            if (errorTag) {
+                if (info.tag) {
+                    errorTag.textContent = info.tag;
+                    errorTag.classList.remove('hidden');
+                } else {
+                    errorTag.classList.add('hidden');
+                }
+            }
+            error.classList.remove('hidden');
+            error.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        /* ---- 地球舞台：输入时识别平台、解析时切换状态、成功后生成结果卡片 ---- */
+        const stageEl = document.getElementById('stage');
+        function setStageState(state){ if(stageEl) stageEl.dataset.state = state; }
+        function showStageSkeleton(){
+            const track = document.getElementById('resTrack');
+            if(track) track.innerHTML = Array.from({length: 4}, () => '<div class="res-skel"><i style="top:18px;right:110px"></i><i style="bottom:44px"></i><i style="bottom:24px;right:80px"></i></div>').join('');
+            document.getElementById('stageResultMeta').textContent = '正在解析…';
+            document.getElementById('stageResultTitle').textContent = '识别平台中';
+        }
+
+
+        function escapeHtml(value){
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        }
+        function safeHttpUrl(value){
+            return typeof value === 'string' && /^https?:\/\//i.test(value.trim()) ? value.trim() : '';
+        }
+        function jumpTo(id){
+            const el = document.getElementById(id);
+            if(!el || el.classList.contains('hidden')) return;
+            if(window.__lenis) window.__lenis.scrollTo(el, { offset: -90 });
+            else el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        function scrollResTrack(direction){
+            const track = document.getElementById('resTrack');
+            if(track) track.scrollBy({ left: direction * 204 * 2, behavior: 'smooth' });
+        }
+        function resetStage(){
+            clearParser();
+            setStageState('idle');
+        }
+        function mediaCard(url, tag, label, target){
+            return `<button type="button" class="res-card res-card--media" onclick="jumpTo('${target}')">`
+                + (url ? `<img class="bg" src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '')
+                + `<span class="tag">${escapeHtml(tag)}</span>`
+                + `<div class="flex items-end justify-between gap-2"><span class="text-sm font-bold leading-snug">${escapeHtml(label)}</span><span class="go">↗</span></div></button>`;
+        }
+        function renderStageCards(data){
+            const track = document.getElementById('resTrack');
+            if(!track) return;
+            const author = data.author && typeof data.author === 'object' ? data.author : {};
+            const authorName = author.nickname || author.author_id || '未知作者';
+            const avatar = safeHttpUrl(author.avatar);
+            const videos = uniqueMediaUrls([data.video_url, ...(Array.isArray(data.video_list) ? data.video_list : [])]).filter(safeHttpUrl);
+            const images = Array.isArray(data.image_list) ? data.image_list : [];
+            const cover = safeHttpUrl(data.cover_url);
+            const subtitles = normalizeSubtitles(data.subtitles);
+            const cards = [];
+
+            cards.push(`<button type="button" class="res-card res-card--ink" onclick="jumpTo('resultState')">`
+                + `<span class="tag">${escapeHtml(data.platform || '作品')}</span>`
+                + `<div><div class="flex items-center gap-2 mb-2">${avatar ? `<img class="res-avatar" src="${escapeHtml(avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}`
+                + `<span class="text-xs font-semibold opacity-80 truncate">${escapeHtml(authorName)}</span></div>`
+                + `<div class="ttl">${escapeHtml(data.title || '未获取到标题')}</div></div><span class="go">↗</span></button>`);
+            if(videos.length) cards.push(mediaCard(cover, `视频 · ${videos.length}`, videos.length > 1 ? `${videos.length} 段视频直链` : '视频直链', 'videoContainer'));
+            let imageCount = 0;
+            images.forEach((img, i) => {
+                const url = safeHttpUrl(typeof img === 'string' ? img : img && img.url);
+                if(!url || imageCount >= 6) return;
+                imageCount++;
+                const live = img && typeof img === 'object' && safeHttpUrl(img.live_photo_url);
+                cards.push(mediaCard(url, live ? '实况' : `图 ${i + 1}/${images.length}`, live ? 'Live Photo' : '高清图片', 'imageContainer'));
+            });
+            if(!videos.length && !imageCount && cover) cards.push(mediaCard(cover, '封面', '高清封面', 'imageContainer'));
+            if(safeHttpUrl(data.audio_url)) cards.push(`<button type="button" class="res-card res-card--teal" onclick="jumpTo('audioContainer')"><span class="tag">音频</span><div><div class="big">♪ 音频</div><div class="text-xs opacity-80 mt-1">背景音乐 / 独立音轨</div></div><span class="go">↗</span></button>`);
+            if(subtitles.length) cards.push(`<button type="button" class="res-card res-card--sky" onclick="jumpTo('subtitleContainer')"><span class="tag">字幕</span><div><div class="big">${subtitles.length} 条</div><div class="text-xs opacity-75 mt-1">字幕 / 歌词时间轴</div></div><span class="go">↗</span></button>`);
+            cards.push(`<button type="button" class="res-card res-card--plain" onclick="jumpTo('resultState')"><span class="tag" style="background:#eef4ff">详情</span><div><div class="big">完整结果</div><div class="text-xs text-slate-500 mt-1">视觉预览 · JSON 原始结构</div></div><span class="go">↓</span></button>`);
+
+            track.innerHTML = cards.map((html, i) => html.replace('<button type="button" class="res-card', `<button type="button" style="--i:${i}" class="res-card`)).join('');
+            track.scrollLeft = 0;
+            const resources = videos.length + imageCount + (safeHttpUrl(data.audio_url) ? 1 : 0);
+            document.getElementById('stageResultTitle').textContent = `${data.platform || '作品'} · ${authorName}`;
+            document.getElementById('stageResultMeta').textContent = resources ? `解析完成 · ${resources} 项媒体资源` : '解析完成';
+            document.getElementById('globePinText').textContent = data.platform || '解析完成';
+        }
+
+        async function handleParse(){
+            const text = input.value.trim();
+            const button = document.getElementById('parseBtn');
+            const loading = document.getElementById('loadingState');
+            const error = document.getElementById('errorState');
+            const result = document.getElementById('resultState');
+
+            if (!text || button.disabled) {
+                if (!text) {
+                    displayError(formatUserErrorMessage({ error_code: 'INVALID_TEXT' }));
+                    input.focus();
+                }
+                return;
+            }
+
+            button.disabled = true;
+            showStageSkeleton();
+            setStageState('loading');
+            loading.classList.remove('hidden');
+            error.classList.add('hidden');
+            result.classList.add('hidden');
+            const hpWebsite = document.getElementById('hpWebsite')?.value || '';
+
+            try {
+                const response = await fetch('/api/parse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, website: hpWebsite })
+                });
+                const payload = await response.json();
+                if (response.ok && payload.succ) {
+                    renderResult(payload.data);
+                    renderStageCards(payload.data);
+                    setStageState('result');
+                } else {
+                    setStageState('idle');
+                    displayError(formatUserErrorMessage(payload));
+                }
+            } catch {
+                setStageState('idle');
+                displayError({
+                    title: '网络连接异常',
+                    message: '无法连接到解析服务，请检查网络后重试。',
+                    hint: '建议检查网络状况或刷新页面后再试。',
+                    tag: '网络异常'
+                });
+            } finally {
+                loading.classList.add('hidden');
+                let countdown = 3;
+                const originalText = '开始解析';
+                button.textContent = `请稍候 (${countdown}s)`;
+                const timer = setInterval(() => {
+                    countdown--;
+                    if (countdown > 0) {
+                        button.textContent = `请稍候 (${countdown}s)`;
+                    } else {
+                        clearInterval(timer);
+                        button.disabled = false;
+                        button.textContent = originalText;
+                    }
+                }, 1000);
+            }
+        }
+        input.addEventListener('keydown',event=>{if((event.metaKey||event.ctrlKey)&&event.key==='Enter')handleParse()});
+    </script>
+
+    <script src="{{ url_for('static', filename='js/globe.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='vendor/lenis.min.js') }}" defer></script>
+    <script>
+        (function () {
+            const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            /* 导航：滚动后出现底色 + 高亮当前区块 */
+            const nav = document.getElementById('siteNav');
+            const onScroll = () => nav && nav.classList.toggle('is-scrolled', window.scrollY > 8);
+            window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+            const links = Array.from(document.querySelectorAll('#lpNav a'));
+            const targets = links.map((a) => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+            if ('IntersectionObserver' in window && targets.length) {
+                const spy = new IntersectionObserver((entries) => entries.forEach((e) => {
+                    if (e.isIntersecting) links.forEach((a) => a.classList.toggle('is-active', a.getAttribute('href') === '#' + e.target.id));
+                }), { rootMargin: '-45% 0px -50% 0px' });
+                targets.forEach((t) => spy.observe(t));
+            }
+
+            /* 入场 + Number Ticker */
+            const countUp = (el) => {
+                const end = Number(el.dataset.count) || 0;
+                if (reduce || !end) { el.textContent = end; return; }
+                const t0 = performance.now(), dur = 1200;
+                const step = (t) => {
+                    const p = Math.min(1, (t - t0) / dur);
+                    el.textContent = Math.round(end * (1 - Math.pow(1 - p, 3)));
+                    if (p < 1) requestAnimationFrame(step);
+                };
+                el.textContent = '0';
+                requestAnimationFrame(step);
+            };
+            if ('IntersectionObserver' in window) {
+                const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+                    if (!e.isIntersecting) return;
+                    e.target.classList.add('is-inview');
+                    e.target.querySelectorAll('[data-count]').forEach(countUp);
+                    io.unobserve(e.target);
+                }), { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+                document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+            } else {
+                document.documentElement.classList.remove('land-anim');
+            }
+
+            /* Card Spotlight：卡片跟随鼠标的高光 */
+            document.querySelectorAll('.feat').forEach((card) => {
+                card.addEventListener('pointermove', (e) => {
+                    const r = card.getBoundingClientRect();
+                    card.style.setProperty('--mx', `${e.clientX - r.left}px`);
+                    card.style.setProperty('--my', `${e.clientY - r.top}px`);
+                });
+            });
+
+            /* 使用教程 Tabs：切换各平台的分享入口说明 */
+            const guide = {
+                douyin: { app: '抖音', btn: '分享', title: '分享给朋友', paste: '7.22 复制打开抖音，看看【阿木的作品】https://v.douyin.com/…' },
+                xhs: { app: '小红书', btn: '分享', title: '分享至', paste: '【阿木的笔记】海边日落 http://xhslink.com/… 复制本条信息，打开小红书' },
+                bili: { app: 'B站', btn: '分享', title: '分享到', paste: '【海边日落延时】https://b23.tv/…' },
+                ks: { app: '快手', btn: '分享', title: '分享到', paste: 'https://v.kuaishou.com/… 阿木的作品 复制此消息，打开快手' },
+            };
+            document.querySelectorAll('[data-guide]').forEach((tab) => tab.addEventListener('click', () => {
+                const g = guide[tab.dataset.guide]; if (!g) return;
+                document.querySelectorAll('[data-guide]').forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+                document.getElementById('guideApp').textContent = g.app;
+                document.getElementById('guideBtn').textContent = g.btn;
+                document.getElementById('guideTitle').textContent = g.title;
+                document.getElementById('guidePaste').textContent = g.paste;
+            }));
+
+            /* Lenis 惯性滚动 */
+            window.addEventListener('DOMContentLoaded', () => {
+                if (reduce || !window.Lenis) return;
+                document.documentElement.classList.remove('scroll-smooth');
+                const lenis = new Lenis({ lerp: 0.1 });
+                window.__lenis = lenis;
+                const raf = (time) => { lenis.raf(time); requestAnimationFrame(raf); };
+                requestAnimationFrame(raf);
+                document.querySelectorAll('a[href^="#"]').forEach((a) => a.addEventListener('click', (e) => {
+                    const hash = a.getAttribute('href');
+                    if (hash.length > 1 && document.querySelector(hash)) { e.preventDefault(); lenis.scrollTo(hash, { offset: -72 }); }
+                }));
+            });
+        })();
+    </script>
+</body>
+</html>

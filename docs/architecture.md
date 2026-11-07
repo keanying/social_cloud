@@ -1,0 +1,238 @@
+# 系统架构与解析生命周期设计 (Architecture)
+
+本文档详细阐述 **Media Parser** 的内部架构分层、请求处理生命周期、工厂模式插件化发现机制以及数据响应标准。
+
+---
+
+## 🏛️ 整体分层架构
+
+项目遵循模块化、高内聚、低耦合的设计原则，自底向上分为以下四层：
+
+```mermaid
+flowchart TD
+    Client["客户端 / Web体验页 / API调用者"]
+    
+    subgraph WebLayer["1. Web 接入层 (app.py & src/api/)"]
+        App["Flask App / 路由"]
+        ParseAPI["POST /api/parse"]
+        HealthAPI["GET /api/health"]
+    end
+    
+    subgraph CoreLayer["2. 调度与解析引擎 (Core Engine)"]
+        UrlParser["UrlParser (正则提取/平台识别)"]
+        WebFetcher["WebFetcher (302重定向追踪)"]
+        Factory["ParserFactory (动态发现与分发)"]
+    end
+    
+    subgraph ParserLayer["3. 平台解析器层 (src/parsers/)"]
+        BaseParser["BaseParser (基类/Session管理)"]
+        Douyin["DouyinParser"]
+        Kuaishou["KuaishouParser"]
+        XHS["XiaohongshuParser"]
+        Bili["BilibiliParser"]
+        Others["... 30+ 其它解析器"]
+    end
+    
+    subgraph UtilLayer["4. 工具与逆向支持 (utils/ & configs/)"]
+        Signer["BogusSigner (mini-racer JS执行)"]
+        Logger["LoggingConfig"]
+        CommonUtils["make_response 标准化响应"]
+    end
+
+    Client --> App
+    App --> ParseAPI
+    ParseAPI --> UrlParser
+    ParseAPI --> WebFetcher
+    ParseAPI --> Factory
+    Factory --> BaseParser
+    BaseParser --> Douyin
+    BaseParser --> Kuaishou
+    BaseParser --> XHS
+    BaseParser --> Bili
+    BaseParser --> Others
+    Douyin --> Signer
+    ParseAPI --> CommonUtils
+```
+
+### 📂 源码目录组织与模块映射
+
+```text
+media-parser/
+├── app.py                     # 应用入口 (Flask Web 服务与 API 启动)
+├── configs/                   # 核心配置 (域名平台映射、日志配置等)
+├── docs/                      # 逆向百科与开发文档体系
+│   ├── architecture.md        # 系统分层架构与生命周期设计
+│   ├── reverse-guide.md       # 通用逆向方法论 (抓包/SSR/JS签名提取)
+│   ├── testing.md             # 完整测试规范与回归手册
+│   └── parsers/               # 平台逆向分析手册
+├── src/                       # 核心业务逻辑
+│   ├── api/                   # RESTful API 路由 (/api/parse, /api/health)
+│   ├── database/              # SQLite 存储管理 (系统设置/用户/API Key/调用日志)
+│   ├── web/                   # Demo 体验页与后台管理蓝图 (admin)
+│   ├── parsers/               # 各平台解析器模块 (核心解析逻辑)
+│   ├── utils/                 # 工具层 (CookieManager 统一凭据管理器)
+│   └── parser_factory.py      # 工厂分发器 (解析器动态发现与自动注册)
+├── utils/                     # 底层工具库与逆向支持
+│   ├── signer/                # JS 签名沙箱引擎 (a_bogus 等算法执行)
+│   └── web_fetcher.py         # 智能 URL 识别、重定向追踪与请求封装
+├── tests/                     # 完备的双层测试体系
+│   ├── live_parser_samples.json # 平台真实多形态在线样本库
+│   ├── manual_verify_parsers.py # 命令行交互式冒烟与健康检查工具
+│   └── test_*_parser.py         # 各平台 Mock 自动化单元测试
+├── static/ & templates/       # Web 演示与管理后台静态资源 / 模板
+└── docker-compose.yml         # 容器化一键部署编排
+```
+
+---
+
+## 🔄 请求处理生命周期 (Lifecycle)
+
+当客户端向 `/api/parse` 发送一段包含分享文案的文本时，完整处理流如下：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 客户端 (Client)
+    participant API as /api/parse
+    participant Fetcher as WebFetcher & UrlParser
+    participant Factory as ParserFactory
+    participant Parser as Platform Parser (如 DouyinParser)
+    participant Output as Response Formatter
+
+    User->>API: POST {"text": "7.22 复制打开抖音... https://v.douyin.com/xxx/"}
+    API->>Fetcher: UrlParser.get_url(text) 提取原始链接
+    API->>Fetcher: WebFetcher.fetch_redirect_url(url) 追踪302重定向
+    Fetcher-->>API: 返回落地真实URL (Real URL)
+    API->>Fetcher: UrlParser.get_platform(real_url) 识别平台名称
+    API->>Factory: ParserFactory.create_parser(platform, real_url)
+    Factory-->>API: 实例化对应平台解析器
+    API->>Parser: 执行抓取 (_fetch_with_retry)
+    Note over Parser: 提取标题、视频直链、图集、LivePhoto、音频等
+    Parser-->>API: 返回原始抓取字典 content_data
+    API->>Output: UrlParser.convert_to_https 统一转 HTTPS
+    API->>Output: make_response(200, '成功', data_dict)
+    Output-->>User: 返回标准 JSON 结构
+```
+
+---
+
+## 🧩 插件化解析器设计 (ParserFactory)
+
+为了便于扩展和多人协作，解析器采用 **装饰器自动注册 + 模块自动发现机制**：
+
+### 1. 自动发现 (`_discover`)
+[src/parser_factory.py](file:///Users/leo/Projects/media-parser/src/parser_factory.py) 会在模块载入时利用 `pkgutil.iter_modules` 自动扫描并动态 `import` `src/parsers/` 下所有除 `base_parser` 以外的 Python 模块。
+
+### 2. 声明式注册 (`@register_parser`)
+新增任何平台解析器时，**无需修改任何工厂类核心代码**，只需继承 `BaseParser` 并加上装饰器：
+
+```python
+from src.parser_factory import register_parser
+from src.parsers.base_parser import BaseParser
+
+@register_parser("示例平台", "示例平台别名")
+class ExampleParser(BaseParser):
+    def __init__(self, real_url):
+        super().__init__(real_url)
+        # 初始化与数据提取
+        
+    def get_real_video_url(self):
+        return "https://..."
+```
+
+---
+
+## 📦 统一响应格式标准 (Data Contract)
+
+所有解析接口均通过 `src/api/response.py` 中的 `make_response` 返回一致的 JSON 响应体。完整错误码与接口细节请参阅 **[RESTful API 与错误码规范](api.md)**。
+
+### 成功响应示例 (`200 OK`)
+```json
+{
+  "retcode": 200,
+  "retdesc": "成功",
+  "succ": true,
+  "data": {
+    "platform": "抖音",
+    "video_id": "7616399587141737704",
+    "title": "视频文案标题",
+    "desc": "作品描述或AI对话正文",
+    "video_url": "https://aweme.snssdk.com/aweme/v1/play/...",
+    "cover_url": "https://p3-pc.douyinpic.com/...",
+    "author": {
+      "nickname": "创作者昵称",
+      "author_id": "unique_id_123",
+      "avatar": "https://p3.douyinpic.com/..."
+    },
+    "audio_url": "https://sf6-cdn-tos.douyinstatic.com/...",
+    "image_list": [
+      {
+        "url": "https://p3-pc.douyinpic.com/image1.jpeg",
+        "live_photo_url": "https://aweme.snssdk.com/aweme/v1/play/live_photo.mp4"
+      }
+    ],
+    "video_list": []
+  }
+}
+```
+
+### 错误响应示例 (`400 / 500`)
+```json
+{
+  "retcode": 400,
+  "retdesc": "未找到有效的分享链接",
+  "succ": false,
+  "data": null,
+  "error_code": "URL_NOT_FOUND"
+}
+```
+
+---
+
+## 🎛️ 双运行模式设计 (Dual-Mode Architecture)
+
+系统通过 `API_ONLY` 环境变量支持两种灵活的架构部署形态：
+
+```mermaid
+graph TD
+    subgraph ClientRequests["客户端请求"]
+        R1["Web 浏览器访问 (/)"]
+        R2["API 客户端 (/api/v1/parse)"]
+    end
+
+    subgraph ModeSwitch["运行模式判断 (API_ONLY)"]
+        Decision{"API_ONLY == true ?"}
+    end
+
+    subgraph FullStackMode["模式 A: 完整站长/SaaS模式 (API_ONLY=false)"]
+        WebUI["Web 前端 + 体验页 + 管理控制台"]
+        AuthSystem["API Key 鉴权 + 积分扣除 + QPS 限流"]
+        DBLogging["SQLite request_logs 日志入库"]
+    end
+
+    subgraph MicroserviceMode["模式 B: 纯解析微服务模式 (API_ONLY=true)"]
+        Headless["Web 页面彻底卸载 (404)"]
+        NoAuth["全接口免鉴权直接调用 (GET/POST)"]
+        ZeroLock["零 DB 写锁与零请求日志开销"]
+    end
+
+    subgraph ParserCore["核心解析引擎 (ParserFactory)"]
+        Parsers["50+ 平台底层逆向解析器"]
+    end
+
+    R1 --> Decision
+    R2 --> Decision
+    Decision -->|"false (默认)"| FullStackMode
+    Decision -->|"true"| MicroserviceMode
+    FullStackMode --> ParserCore
+    MicroserviceMode --> ParserCore
+```
+
+1. **标准 SaaS 运营模式 (`API_ONLY=false`)**：
+   - 挂载全部 Web 前端（首页、用户控制台 `/portal`、管理后台 `/admin`、认证 `/auth`）。
+   - 启用 API Key 鉴权、用户有效期与积分扣减、单用户/单Key QPS 桶限流，并将每次调用审计记录写入 SQLite。
+2. **纯解析微服务模式 (`API_ONLY=true`)**：
+   - 彻底关闭 Web 页面路由，专供内网或下游自动化服务（如 Telegram/微信 Bot、下载器、爬虫后端）调用。
+   - `GET /api/v1/parse` 与 `POST /api/parse` 均为完全免鉴权接口，直接传参秒级响应。
+   - 跳过积分扣减与数据库日志写库，零 SQLite 写锁竞争，极度适合高并发与 Docker 多实例水平伸缩。
+

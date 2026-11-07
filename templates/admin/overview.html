@@ -1,0 +1,266 @@
+{% extends 'base_console.html' %}
+{% block title %}系统概览 · 管理员后台{% endblock %}
+{% block page_title %}概览{% endblock %}
+{% block console_content %}
+<main class="max-w-7xl mx-auto space-y-6">
+    <div id="overview" class="tab-view space-y-6">
+        {% set calls = stats['calls'] or 0 %}
+        {% set succ = stats['successes'] or 0 %}
+        {% set fails = calls - succ %}
+        {% set rate = ((succ / calls * 100)|round(1)) if calls else None %}
+        {% set api_on = settings.get('global_api_enabled') == '1' %}
+        {% set hot = pie_data['items'][0] if pie_data['items'] else None %}
+        {% set period = '全部历史' if current_days == 0 else '近 ' ~ current_days ~ ' 天' %}
+
+        <!-- 头部：大标题 + 指标胶囊 -->
+        <div class="flex flex-col xl:flex-row xl:items-center gap-5">
+            <div class="shrink-0 xl:w-56">
+                <h1 class="ov-title">系统管理<br>概览</h1>
+                <p class="sr-only">控制服务全局开放状态、配置客户到期时间与各平台 QPS 限制。</p>
+            </div>
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="cs-kpi">
+                    <span class="cs-kpi-icon">{{ icon('shield', 'w-5 h-5') }}</span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap"><span class="cs-kpi-num {{ '' if api_on else '!text-red-600' }}">{{ '正常服务' if api_on else '已暂停' }}</span><span class="cs-badge {{ 'cs-badge--green' if api_on else 'cs-badge--amber' }}">{{ 'API 在线' if api_on else '维护中' }}</span></div>
+                        <div class="cs-kpi-lbl">全局对外解析接口</div>
+                    </div>
+                </div>
+                <div class="cs-kpi">
+                    <span class="cs-kpi-icon">{{ icon('check', 'w-5 h-5') }}</span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap"><span class="cs-kpi-num">{{ (rate ~ '%') if rate is not none else '—' }}</span><span class="cs-badge cs-badge--green">{{ succ }} 次成功</span></div>
+                        <div class="cs-kpi-lbl">近 24 小时成功率</div>
+                    </div>
+                </div>
+                <div class="cs-kpi">
+                    <span class="cs-kpi-icon">{{ icon('users', 'w-5 h-5') }}</span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap"><span class="cs-kpi-num">+{{ stats['users'] or 0 }}</span><span class="cs-badge cs-badge--blue">活跃客户</span></div>
+                        <div class="cs-kpi-lbl">近 24 小时有调用的账号</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 解析概况：彩色卡片 -->
+        <section class="cs-panel">
+            <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">解析概况</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">24 小时实时数据与{{ period }}累计</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <nav class="cs-seg" aria-label="统计周期">
+                        {% for d, label in [(7, '近 7 天'), (30, '近 30 天'), (90, '近 90 天'), (180, '近 180 天'), (0, '全周期')] %}
+                        <a href="{{ url_for('admin.overview', days=d) }}" class="{{ 'is-active' if current_days == d }}">{{ label }}</a>
+                        {% endfor %}
+                    </nav>
+                    <a href="{{ url_for('admin.logs') }}" class="cs-icon-btn" title="查看运行日志" aria-label="查看运行日志">↗</a>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div class="cs-tile cs-tile--blue">
+                    <span class="dots" aria-hidden="true">···</span>
+                    <div><div class="k">近 24 小时</div><div class="t">总调用<br>接口请求</div></div>
+                    <div class="flex items-end justify-between gap-2">
+                        <span class="big">{{ calls }}</span>
+                        {% if pie_data['items'] %}<span class="cs-bubbles">{% for it in pie_data['items'][:3] %}<span style="--c:{{ it['color'] }}" title="{{ it['platform'] }}">{{ it['platform'][0] }}</span>{% endfor %}</span>{% endif %}
+                    </div>
+                </div>
+                <div class="cs-tile cs-tile--teal">
+                    <span class="dots" aria-hidden="true">···</span>
+                    <div><div class="k">近 24 小时</div><div class="t">成功调用<br>有效完成媒体直链解析</div></div>
+                    <div class="flex items-end justify-between gap-2"><span class="big">{{ succ }}</span><span class="text-xs font-semibold opacity-80">{{ (rate ~ '%') if rate is not none else '暂无数据' }}</span></div>
+                </div>
+                <a href="{{ url_for('admin.logs') }}" class="cs-tile cs-tile--ink">
+                    <span class="dots" aria-hidden="true">↗</span>
+                    <div><div class="k">近 24 小时</div><div class="t">失败请求<br>点击查看运行日志</div></div>
+                    <div class="flex items-end justify-between gap-2"><span class="big">{{ fails }}</span><span class="text-xs font-semibold opacity-70">{{ '需要关注' if fails else '运行良好' }}</span></div>
+                </a>
+                <div class="cs-tile cs-tile--sun">
+                    <span class="dots" aria-hidden="true">···</span>
+                    <div><div class="k">{{ period }}</div><div class="t">解析总量<br>全平台累计</div></div>
+                    <div class="flex items-end justify-between gap-2"><span class="big">{{ pie_data['total_calls_formatted'] or pie_data['total_calls'] }}</span><span class="text-xs font-semibold opacity-70">{{ pie_data['items']|length }} 个平台</span></div>
+                </div>
+                <div class="cs-tile">
+                    <span class="dots" aria-hidden="true">···</span>
+                    <div><div class="k">{{ period }}</div><div class="t">最热平台<br>{{ ('占比 ' ~ hot['percentage'] ~ '%') if hot else '暂无调用记录' }}</div></div>
+                    <div class="flex items-end justify-between gap-2"><span class="big">{{ hot['platform'] if hot else '—' }}</span>{% if hot %}<span class="cs-bubbles"><span style="--c:{{ hot['color'] }}">{{ hot['platform'][0] }}</span></span>{% endif %}</div>
+                </div>
+                <a href="{{ url_for('admin.users') }}" class="cs-tile">
+                    <span class="dots" aria-hidden="true">···</span>
+                    <div><div class="k">{{ period }}</div><div class="t">调用最多的客户<br>{{ (top_users[0]['calls'] ~ ' 次调用') if top_users else '暂无客户调用' }}</div></div>
+                    <div class="flex items-end justify-between gap-2"><span class="big truncate">{{ top_users[0]['username'] if top_users else '—' }}</span>{% if top_users %}<span class="cs-bubbles">{% for u in top_users[:3] %}<span style="--c:{{ ['#0b65ff', '#34a3b4', '#0b1020'][loop.index0] }}">{{ u['username'][0]|upper }}</span>{% endfor %}</span>{% endif %}</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- API 调用趋势折线图卡片 -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+            <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">API 调用趋势</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        {% if current_days == 0 %}全部历史每日接口请求与成功解析趋势{% else %}近 {{ current_days }} 天每日接口请求与成功解析趋势{% endif %}
+                    </p>
+                </div>
+                <div class="flex items-center gap-4 text-xs font-semibold text-slate-600">
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-brand"></span>总调用量</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>成功调用量</span>
+                </div>
+            </div>
+
+            <div class="chart-container relative overflow-x-auto">
+                <div class="chart-tooltip pointer-events-none"></div>
+                <svg viewBox="0 0 720 230" class="w-full min-w-[550px] h-auto block font-sans">
+                    <defs>
+                        <linearGradient id="callsGradAdmin" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#0b65ff" stop-opacity="0.18" />
+                            <stop offset="100%" stop-color="#0b65ff" stop-opacity="0.0" />
+                        </linearGradient>
+                        <linearGradient id="succGradAdmin" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#10b981" stop-opacity="0.18" />
+                            <stop offset="100%" stop-color="#10b981" stop-opacity="0.0" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Y 轴网格辅助线与刻度 -->
+                    {% for tick in chart_data['y_ticks'] %}
+                    <line x1="45" y1="{{ tick['y'] }}" x2="675" y2="{{ tick['y'] }}" stroke="#f1f5f9" stroke-width="0.8" stroke-dasharray="3 3" />
+                    <text x="38" y="{{ tick['y'] + 3.5 }}" text-anchor="end" font-size="9.5" fill="#94a3b8">{{ tick['val'] }}</text>
+                    {% endfor %}
+
+                    <!-- X 轴基线 -->
+                    <line x1="45" y1="180" x2="675" y2="180" stroke="#e2e8f0" stroke-width="0.9" />
+
+                    <!-- 鼠标悬浮对齐线 -->
+                    <line class="chart-guide-line" x1="0" y1="20" x2="0" y2="180" stroke="#818cf8" stroke-width="1" stroke-dasharray="3 3" style="display:none;pointer-events:none" />
+
+                    <!-- 平滑渐变填充面 -->
+                    <path d="{{ chart_data['calls_area_path'] }}" fill="url(#callsGradAdmin)" />
+                    <path d="{{ chart_data['successes_area_path'] }}" fill="url(#succGradAdmin)" />
+
+                    <!-- 趋势平滑贝塞尔曲线 -->
+                    <path d="{{ chart_data['calls_path'] }}" fill="none" stroke="#0b65ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="{{ chart_data['successes_path'] }}" fill="none" stroke="#10b981" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+
+                    <!-- 动态悬停聚焦圆点 -->
+                    <circle class="chart-hover-dot calls-dot" cx="0" cy="0" r="3.5" fill="#0b65ff" stroke="#ffffff" stroke-width="1.8" style="display:none;pointer-events:none" />
+                    <circle class="chart-hover-dot succ-dot" cx="0" cy="0" r="3" fill="#10b981" stroke="#ffffff" stroke-width="1.6" style="display:none;pointer-events:none" />
+
+                    <!-- X 轴刻度与交互节点 -->
+                    {% for item in chart_data['trend'] %}
+                    {% if item['show_label'] %}
+                    <text x="{{ item['x'] }}" y="198" text-anchor="middle" font-size="9.5" font-weight="450" fill="#94a3b8">{{ item['short_date'] }}</text>
+                    {% endif %}
+
+                    <!-- 透明列触控矩形 -->
+                    <rect class="chart-col-trigger" x="{{ item['x'] - 20 }}" y="15" width="40" height="170" fill="transparent" style="cursor:pointer" data-date="{{ item['date'] }}" data-calls="{{ item['calls'] }}" data-successes="{{ item['successes'] }}" data-failures="{{ item['failures'] }}" data-cx="{{ item['x'] }}" data-cy-calls="{{ item['y_calls'] }}" data-cy-succ="{{ item['y_successes'] }}" />
+                    {% endfor %}
+                </svg>
+            </div>
+        </div>
+
+        <!-- 下方双栏：平台使用分布（左） + 活跃客户榜 Top 10（右） -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 左侧：平台使用分布 -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+                <div class="mb-5">
+                    <h2 class="text-base font-bold text-slate-900">平台使用分布</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        {% if current_days == 0 %}全部历史各平台解析调用分布与占比{% else %}近 {{ current_days }} 天各平台解析调用分布与占比{% endif %}
+                    </p>
+                </div>
+
+                {% if pie_data['total_calls'] == 0 %}
+                <div class="text-center py-12 text-slate-400 text-xs">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 8v4l3 3" />
+                    </svg>
+                    <div>当前时间范围内暂无调用记录</div>
+                </div>
+                {% else %}
+                <div class="pie-wrapper" id="admin-platform-dist">
+                    <div class="pie-svg-box relative w-56 h-56 mx-auto">
+                        <svg viewBox="0 0 200 200" class="w-full h-full">
+                            {% for item in pie_data['items'] %}
+                            <path d="{{ item['path_d'] }}" fill="{{ item['color'] }}" class="pie-slice transition-opacity hover:opacity-80 cursor-pointer" 
+                                  data-platform="{{ item['platform'] }}" 
+                                  data-calls="{{ item['calls_formatted'] }}" 
+                                  data-percent="{{ item['percentage'] }}%"
+                                  data-successes="{{ item['successes_formatted'] }}"
+                                  data-failures="{{ item['failures_formatted'] }}"
+                                  data-rate="{{ item['success_rate'] }}%"
+                                  data-color="{{ item['color'] }}">
+                            </path>
+                            {% endfor %}
+                        </svg>
+                        <div class="pie-center-text absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center select-none px-2">
+                            <div class="pie-center-lbl text-xs text-slate-500 font-medium truncate max-w-[140px] transition-colors duration-150" id="admin-pie-lbl">总解析量</div>
+                            <div class="pie-center-val text-xl font-bold text-slate-900 mt-0.5 tracking-tight transition-all duration-150" id="admin-pie-val">{{ pie_data['total_calls_formatted'] or pie_data['total_calls'] }} 次</div>
+                            <div class="pie-center-sub text-[11px] text-slate-400 mt-0.5 min-h-[16px] font-medium transition-colors duration-150" id="admin-pie-sub"><span style="color:#94a3b8;font-size:10.5px;font-weight:400">成功率</span> <span style="color:#475569;font-weight:600">{{ pie_data['total_success_rate'] }}%</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 紧凑点状图例 -->
+                    <div class="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 mt-5 pt-3 border-t border-slate-100">
+                        {% for item in pie_data['items'] %}
+                        <div class="pie-pill-item inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-slate-100 cursor-pointer transition text-xs font-medium text-slate-600 hover:text-slate-900 select-none" 
+                             data-platform="{{ item['platform'] }}" 
+                             data-calls="{{ item['calls_formatted'] }}" 
+                             data-percent="{{ item['percentage'] }}%"
+                             data-successes="{{ item['successes_formatted'] }}"
+                             data-failures="{{ item['failures_formatted'] }}"
+                             data-rate="{{ item['success_rate'] }}%"
+                             data-color="{{ item['color'] }}">
+                            <span class="w-2 h-2 rounded-full shrink-0" style="background:{{ item['color'] }}"></span>
+                            <span class="truncate">{{ item['platform'] }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- 右侧：活跃客户榜 Top 10 -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+                <div class="mb-5">
+                    <h2 class="text-base font-bold text-slate-900">活跃客户调取榜 (Top 10)</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        {% if current_days == 0 %}全部历史调用量最高的客户账号{% else %}近 {{ current_days }} 天调用量最高的客户账号{% endif %}
+                    </p>
+                </div>
+
+                {% if not top_users %}
+                <div class="text-center py-12 text-slate-400 text-xs">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                    </svg>
+                    <div>暂无客户调用排行数据</div>
+                </div>
+                {% else %}
+                <div class="divide-y divide-slate-100">
+                    {% for item in top_users %}
+                    <div class="flex items-center justify-between py-2.5 first:pt-0 last:pb-0 text-xs">
+                        <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                            <span class="w-5 h-5 rounded-md flex items-center justify-center text-[11px] font-bold shrink-0 {{ 'bg-amber-100 text-amber-800' if loop.index == 1 else ('bg-slate-200 text-slate-700' if loop.index <= 3 else 'bg-slate-100 text-slate-500') }}">
+                                {{ loop.index }}
+                            </span>
+                            <a href="{{ url_for('admin.users', users_q=item['username']) }}" class="font-medium text-slate-800 hover:text-brand hover:underline transition truncate" title="点击在客户账号中检索该用户：{{ item['username'] }}">
+                                {{ item['username'] }}
+                            </a>
+                            <span class="text-slate-400 font-mono text-[11px] shrink-0">#{{ item['id'] }}</span>
+                        </div>
+                        <span class="font-semibold text-slate-900 shrink-0 font-mono">{{ item['calls'] }} <span class="text-slate-400 font-sans font-normal">次</span></span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
