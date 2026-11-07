@@ -173,6 +173,36 @@ class LoginRequiredParseTest(unittest.TestCase):
             response = self.client.get("/api/download", query_string={"url": VIDEO_URL})
         self.assertEqual(response.status_code, 403)
 
+    # ---- 本页播放（内联中转） ----
+    def test_media_requires_login(self):
+        response = self.client.get("/api/media", query_string={"url": VIDEO_URL})
+        self.assertEqual(response.status_code, 401)
+
+    def test_media_passes_range_for_seeking(self):
+        self.login()
+        self.parse()
+        partial = FakeUpstream(status=206, body=b"part", headers={"Content-Range": "bytes 0-3/100", "Accept-Ranges": "bytes"})
+        with patch("src.api.download.socket.getaddrinfo", return_value=PUBLIC_ADDRINFO), \
+                patch("src.api.download.requests.Session.get", return_value=partial) as upstream:
+            response = self.client.get("/api/media", query_string={"url": VIDEO_URL}, headers={"Range": "bytes=0-3"})
+            body = response.get_data()
+        self.assertEqual(response.status_code, 206)
+        self.assertEqual(body, b"part")
+        self.assertEqual(response.headers["Content-Range"], "bytes 0-3/100")
+        self.assertNotIn("Content-Disposition", response.headers)
+        self.assertEqual(upstream.call_args.kwargs["headers"]["Range"], "bytes=0-3")
+        self.assertIn("sandbox", response.headers["Content-Security-Policy"])
+
+    def test_media_never_serves_html_inline(self):
+        self.login()
+        self.parse()
+        html = FakeUpstream(body=b"<script>alert(1)</script>", headers={"Content-Type": "text/html"})
+        with patch("src.api.download.socket.getaddrinfo", return_value=PUBLIC_ADDRINFO), \
+                patch("src.api.download.requests.Session.get", return_value=html):
+            response = self.client.get("/api/media", query_string={"url": VIDEO_URL})
+        self.assertEqual(response.mimetype, "application/octet-stream")
+        self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+
     # ---- 首页登录弹窗的 JSON 登录 ----
     def test_fetch_login_returns_json(self):
         self.client.get("/auth/login")

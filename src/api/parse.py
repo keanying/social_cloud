@@ -8,7 +8,7 @@ from src.utils.parser_transport import (
     Attempt, ParseFailure, ProxyAccessFailure, attempt_context,
 )
 from src.api.response import make_response
-from src.api.download import download as download_media, grant_media_urls
+from src.api.download import download as download_media, grant_media_urls, media as inline_media
 from src.db import refund_user_credit, reserve_user_credit
 from src.api.access import (
     authenticate_api_key,
@@ -36,6 +36,12 @@ def health():
 def download():
     """一键下载：中转当前登录用户近期解析得到的媒体文件。"""
     return download_media()
+
+
+@bp.route('/media', methods=['GET'])
+def media():
+    """本页播放：内联中转视频 / 音频 / 图片，支持 Range 拖动进度。"""
+    return inline_media()
 
 
 @bp.route('/parse', methods=['GET', 'POST'])

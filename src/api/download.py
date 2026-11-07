@@ -1,4 +1,7 @@
-"""一键下载：由服务端中转媒体文件并以附件形式返回。
+"""一键下载 / 本页播放：由服务端中转媒体文件。
+
+- /api/download：以附件形式返回，用于一键下载；
+- /api/media：以内联形式返回并透传 Range，用于页面内直接播放视频 / 音频、显示图片（可拖动进度）。
 
 平台 CDN 普遍有防盗链和跨域限制，浏览器无法直接以 `download` 方式保存，因此由服务端中转。
 为避免中转接口被滥用为 SSRF 跳板：
@@ -111,13 +114,15 @@ def _referer_for(url):
     return None
 
 
-def _open_upstream(url):
+def _open_upstream(url, byte_range=None):
     """逐跳跟随重定向，每一跳都做公网校验。"""
     session = requests.Session()
     current = url
     for _ in range(MAX_REDIRECTS + 1):
         _assert_public_host(current)
         headers = {"User-Agent": USER_AGENT, "Accept": "*/*"}
+        if byte_range:
+            headers["Range"] = byte_range
         referer = _referer_for(current)
         if referer:
             headers["Referer"] = referer
@@ -147,10 +152,20 @@ def _filename(name, url, content_type):
     return base if base.lower().endswith(ext) else base + ext
 
 
-def download():
+_RANGE = re.compile(r"^bytes=\d*-\d*$")
+# 允许在页面内联展示的类型；其余一律按二进制流返回，避免被当作页面渲染
+_INLINE_TYPES = ("video/", "audio/", "image/")
+# 上游内容不可信：禁止脚本执行与被当作页面解析
+_SAFE_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": "default-src 'none'; sandbox",
+}
+
+
+def _serve(inline):
     user = g.get("user")
     if user is None:
-        return _error(401, "请先登录后再下载", "LOGIN_REQUIRED")
+        return _error(401, "请先登录后再下载" if not inline else "请先登录", "LOGIN_REQUIRED")
     url = (request.args.get("url") or "").strip()
     if not url or len(url) > 4096:
         return _error(400, "缺少下载地址", "INVALID_URL")
@@ -160,24 +175,33 @@ def download():
         # 前端预检：只校验登录与授权，不访问上游，便于给出明确提示
         return make_response(200, "可以下载", None, True), 200
 
+    byte_range = None
+    if inline:
+        raw_range = (request.headers.get("Range") or "").strip()
+        if raw_range and _RANGE.match(raw_range):
+            byte_range = raw_range
+
     try:
-        session, upstream = _open_upstream(url)
+        session, upstream = _open_upstream(url, byte_range)
     except DownloadRejected as exc:
         return _error(exc.status, exc.message, exc.code)
     except requests.RequestException:
-        logger.warning("下载中转连接失败")
+        logger.warning("媒体中转连接失败")
         return _error(502, "资源服务器暂时无法访问，请稍后重试", "DOWNLOAD_FAILED")
 
     if upstream.status_code >= 400:
         upstream.close(); session.close()
         return _error(502, "资源已失效或被平台拒绝，请重新解析后再试", "DOWNLOAD_FAILED")
     length = upstream.headers.get("Content-Length")
-    if length and length.isdigit() and int(length) > MAX_DOWNLOAD_BYTES:
+    if not byte_range and length and length.isdigit() and int(length) > MAX_DOWNLOAD_BYTES:
         upstream.close(); session.close()
         return _error(413, "文件过大，请复制链接后自行下载", "DOWNLOAD_TOO_LARGE")
 
     content_type = upstream.headers.get("Content-Type") or "application/octet-stream"
-    filename = _filename(request.args.get("name"), url, content_type)
+    if inline and not content_type.lower().startswith(_INLINE_TYPES):
+        # 部分 CDN 统一返回 octet-stream：按扩展名推断媒体类型，推断不出则保持二进制流
+        guessed = mimetypes.guess_type(urlparse(url).path)[0] or ""
+        content_type = guessed if guessed.startswith(_INLINE_TYPES) else "application/octet-stream"
 
     def generate():
         sent = 0
@@ -191,11 +215,27 @@ def download():
             upstream.close()
             session.close()
 
-    headers = {
-        "Content-Disposition": f"attachment; filename=\"download{os.path.splitext(filename)[1]}\"; filename*=UTF-8''{quote(filename)}",
-        "Cache-Control": "no-store",
-        "X-Content-Type-Options": "nosniff",
-    }
+    headers = dict(_SAFE_HEADERS)
+    if inline:
+        headers["Cache-Control"] = "private, max-age=600"
+        headers["Accept-Ranges"] = upstream.headers.get("Accept-Ranges", "bytes")
+        if upstream.status_code == 206 and upstream.headers.get("Content-Range"):
+            headers["Content-Range"] = upstream.headers["Content-Range"]
+    else:
+        filename = _filename(request.args.get("name"), url, content_type)
+        headers["Cache-Control"] = "no-store"
+        headers["Content-Disposition"] = (
+            f"attachment; filename=\"download{os.path.splitext(filename)[1]}\"; filename*=UTF-8''{quote(filename)}"
+        )
     if length and length.isdigit():
         headers["Content-Length"] = length
-    return Response(stream_with_context(generate()), status=200, headers=headers, content_type=content_type)
+    status = 206 if inline and upstream.status_code == 206 else 200
+    return Response(stream_with_context(generate()), status=status, headers=headers, content_type=content_type)
+
+
+def download():
+    return _serve(inline=False)
+
+
+def media():
+    return _serve(inline=True)
