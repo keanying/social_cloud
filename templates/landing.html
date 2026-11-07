@@ -339,7 +339,7 @@
                     <h3>粘贴到社媒云</h3>
                     <p>链接和整段分享文案都可以，社媒云会自动找出链接、识别平台。</p>
                     <div class="mock">
-                        <div class="mock-input"><span id="guidePaste">7.22 复制打开抖音，看看【阿木的作品】https://v.douyin.com/…</span><span class="caret"></span></div>
+                        <div class="mock-input"><span id="guidePaste">7.22 复制打开抖音，看看【XX的作品】https://v.douyin.com/…</span><span class="caret"></span></div>
                         <div class="mock-btn" id="guideBtnMock">开始解析</div>
                     </div>
                 </article>
@@ -371,7 +371,7 @@
                     <h3>{{ ms('videocam') }}视频</h3>
                     <p>尽量获取平台提供的最高清晰度；合集、多段视频会全部列出来，逐个预览，一键下载到本地。</p>
                     <div class="player" style="background-image:url('{{ url_for('static', filename='images/mock/sunset.svg') }}')">
-                        <span class="meta"><i>木</i>阿木 · 海边日落延时</span>
+                        <span class="meta"><i>X</i>XX · 海边日落延时</span>
                         <span class="q">1080P</span>
                         <span class="play">{{ ms('play_arrow-f', '!w-7 !h-7') }}</span>
                         <span class="time">00:12 / 00:32</span>
@@ -392,7 +392,7 @@
                 <article class="feat feat--ink" data-reveal>
                     <h3>{{ ms('music_note') }}背景音乐</h3>
                     <p>喜欢视频里的配乐？单独提取音频，音乐平台的歌曲链接也能识别。</p>
-                    <div class="song"><span class="cover"></span><span class="t">海风 · 原声<em>阿木 · 00:32</em></span><span class="p">{{ ms('play_arrow-f') }}</span></div>
+                    <div class="song"><span class="cover"></span><span class="t">海风 · 原声<em>XX · 00:32</em></span><span class="p">{{ ms('play_arrow-f') }}</span></div>
                     <div class="wave">{% for h in [40,70,55,90,62,35,80,58,95,45,72,50,85,38,66,52,78,44] %}<i style="--h:{{ h }}%;--d:{{ (loop.index0 * 0.09)|round(2) }}s"></i>{% endfor %}</div>
                 </article>
                 <article class="feat lg:col-span-2" data-reveal style="--reveal-delay:.08s">
@@ -823,6 +823,15 @@
             }
         }
 
+        function syncImageSection(){
+            const grid = document.getElementById('imageGrid');
+            const left = grid.children.length;
+            document.getElementById('imageCount').textContent = left;
+            document.getElementById('imageContainer').classList.toggle('hidden', left === 0);
+            const hasAudio = Boolean(lastParsedData && lastParsedData.audio_url);
+            document.getElementById('emptyMediaNotice').classList.toggle('hidden', currentVideoUrls.length > 0 || hasAudio || left > 0);
+        }
+
         function renderResult(data){
             lastParsedData = data;
             document.getElementById('resultPlatform').textContent = data.platform || '未知平台';
@@ -979,8 +988,9 @@
                 }
             });
 
+            // 有视频时封面已作为视频海报展示，不再重复放进图集；只有既无视频也无图片时才单独展示封面
             const coverUrl = typeof data.cover_url === 'string' ? data.cover_url.trim() : '';
-            if(coverUrl && !seenUrls.has(coverUrl)){
+            if(coverUrl && !seenUrls.has(coverUrl) && currentVideoUrls.length === 0 && uniqueImageList.length === 0){
                 seenUrls.add(coverUrl);
                 uniqueImageList.unshift({ label: '封面', url: coverUrl, livePhoto: '' });
             }
@@ -1033,12 +1043,9 @@
                     overlay.appendChild(btnZoom);
 
                     img.onerror = () => {
-                        img.remove();
-                        if(cardVideo) cardVideo.remove();
-                        overlay.remove();
-                        badge.remove();
-                        card.className = 'rounded-2xl border border-slate-200/80 bg-slate-50/80 aspect-square p-4 flex items-center justify-center text-center text-xs leading-5 text-slate-500';
-                        card.textContent = '图片直链已失效或被平台访问策略限制。请重新解析后再试。';
+                        // 加载失败（失效或防盗链）直接移除；全部失败时隐藏整个图集区
+                        card.remove();
+                        syncImageSection();
                     };
                     card.append(badge, overlay);
                     imageGrid.appendChild(card);
@@ -1049,12 +1056,7 @@
             }
 
             // 5. 无资源提示
-            const emptyNotice = document.getElementById('emptyMediaNotice');
-            if(currentVideoUrls.length === 0 && !data.audio_url && uniqueImageList.length === 0){
-                emptyNotice.classList.remove('hidden');
-            } else {
-                emptyNotice.classList.add('hidden');
-            }
+            syncImageSection();
 
             // 6. JSON 数据渲染
             document.getElementById('jsonCode').textContent = JSON.stringify(data, null, 2);
@@ -1549,10 +1551,10 @@
 
             /* 使用教程 Tabs：切换各平台的分享入口说明 */
             const guide = {
-                douyin: { app: '抖音', btn: '分享', title: '分享给朋友', paste: '7.22 复制打开抖音，看看【阿木的作品】https://v.douyin.com/…' },
-                xhs: { app: '小红书', btn: '分享', title: '分享至', paste: '【阿木的笔记】海边日落 http://xhslink.com/… 复制本条信息，打开小红书' },
+                douyin: { app: '抖音', btn: '分享', title: '分享给朋友', paste: '7.22 复制打开抖音，看看【XX的作品】https://v.douyin.com/…' },
+                xhs: { app: '小红书', btn: '分享', title: '分享至', paste: '【XX的笔记】海边日落 http://xhslink.com/… 复制本条信息，打开小红书' },
                 bili: { app: 'B站', btn: '分享', title: '分享到', paste: '【海边日落延时】https://b23.tv/…' },
-                ks: { app: '快手', btn: '分享', title: '分享到', paste: 'https://v.kuaishou.com/… 阿木的作品 复制此消息，打开快手' },
+                ks: { app: '快手', btn: '分享', title: '分享到', paste: 'https://v.kuaishou.com/… XX的作品 复制此消息，打开快手' },
             };
             document.querySelectorAll('[data-guide]').forEach((tab) => tab.addEventListener('click', () => {
                 const g = guide[tab.dataset.guide]; if (!g) return;
