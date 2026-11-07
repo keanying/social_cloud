@@ -25,9 +25,11 @@ def activate_worker(database):
     manager.activate('快手')
 
 
-def replenish_worker(database, api_url, event):
+def replenish_worker(database, api_url, barrier):
     manager = ProxyManager(database, api_url)
-    event.wait(10)
+    # 等所有进程都初始化完再同时开始：Windows 的 spawn 启动较慢，
+    # 不同步的话后到的进程会在 1 秒补货间隔之后再取一次，测不到“并发只取一次”
+    barrier.wait(30)
     manager.replenish(time.monotonic() + 5)
 
 
@@ -198,13 +200,12 @@ class ProcessCoordinationTest(unittest.TestCase):
                     api_url = f'http://127.0.0.1:{server.server_port}'
                     ProxyManager(database, api_url)
                     context = multiprocessing.get_context('spawn')
-                    event = context.Event()
-                    processes = [context.Process(target=replenish_worker, args=(database, api_url, event)) for _ in range(2)]
+                    barrier = context.Barrier(2)
+                    processes = [context.Process(target=replenish_worker, args=(database, api_url, barrier)) for _ in range(2)]
                     for process in processes:
                         process.start()
-                    event.set()
                     for process in processes:
-                        process.join(15)
+                        process.join(45)
                         self.assertEqual(process.exitcode, 0)
                     self.assertEqual(len(calls), 1)
             finally:
