@@ -176,20 +176,20 @@ def register():
                     session.permanent = True
 
                     # 对应场景文案：
-                    # A（赠送额度，无时间限制）: 欢迎使用 Media Parser！已发放 {credits} 点免费额度，前往「API 密钥」获取凭证
-                    # B（无限额度，无到期）: 欢迎使用 Media Parser！无限额度已启用，前往「API 密钥」获取凭证
-                    # C（限时试用，固定额度）: 欢迎使用 Media Parser！试用开通，{credits} 点额度已发放，前往「API 密钥」获取凭证
-                    # D（限时试用，无限额度）: 欢迎使用 Media Parser！试用开通，无限额度已启用，前往「API 密钥」获取凭证
+                    # A（赠送额度，无时间限制）: 欢迎使用社媒云！已发放 {credits} 点免费额度，前往「API 密钥」获取凭证
+                    # B（无限额度，无到期）: 欢迎使用社媒云！无限额度已启用，前往「API 密钥」获取凭证
+                    # C（限时试用，固定额度）: 欢迎使用社媒云！试用开通，{credits} 点额度已发放，前往「API 密钥」获取凭证
+                    # D（限时试用，无限额度）: 欢迎使用社媒云！试用开通，无限额度已启用，前往「API 密钥」获取凭证
                     if trial_days > 0:
                         if initial_credits == -1:
-                            msg = "欢迎使用 Media Parser！试用开通，无限额度已启用，前往「API 密钥」获取凭证"
+                            msg = "欢迎使用社媒云！试用开通，无限额度已启用，前往「API 密钥」获取凭证"
                         else:
-                            msg = f"欢迎使用 Media Parser！试用开通，{initial_credits} 点额度已发放，前往「API 密钥」获取凭证"
+                            msg = f"欢迎使用社媒云！试用开通，{initial_credits} 点额度已发放，前往「API 密钥」获取凭证"
                     else:
                         if initial_credits == -1:
-                            msg = "欢迎使用 Media Parser！无限额度已启用，前往「API 密钥」获取凭证"
+                            msg = "欢迎使用社媒云！无限额度已启用，前往「API 密钥」获取凭证"
                         else:
-                            msg = f"欢迎使用 Media Parser！已发放 {initial_credits} 点免费额度，前往「API 密钥」获取凭证"
+                            msg = f"欢迎使用社媒云！已发放 {initial_credits} 点免费额度，前往「API 密钥」获取凭证"
 
                     flash(msg, "success")
                     return redirect(url_for("portal.dashboard"))

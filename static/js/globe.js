@@ -100,16 +100,16 @@
 
         // 大气光晕
         const halo = ctx.createRadialGradient(c, c, R * 0.92, c, c, R * 1.32);
-        halo.addColorStop(0, 'rgba(190,210,255,0.55)');
-        halo.addColorStop(1, 'rgba(190,210,255,0)');
+        halo.addColorStop(0, 'rgba(200,235,255,0.5)');
+        halo.addColorStop(1, 'rgba(200,235,255,0)');
         ctx.fillStyle = halo;
         ctx.beginPath(); ctx.arc(c, c, R * 1.32, 0, Math.PI * 2); ctx.fill();
 
         // 海洋
         const ocean = ctx.createRadialGradient(c - R * 0.38, c - R * 0.42, R * 0.1, c, c, R);
-        ocean.addColorStop(0, '#6f95ff');
-        ocean.addColorStop(0.55, '#2f55e4');
-        ocean.addColorStop(1, '#1b2fae');
+        ocean.addColorStop(0, '#4d93ff');
+        ocean.addColorStop(0.55, '#0a5cf0');
+        ocean.addColorStop(1, '#0636a8');
         ctx.fillStyle = ocean;
         ctx.beginPath(); ctx.arc(c, c, R, 0, Math.PI * 2); ctx.fill();
 
@@ -127,9 +127,9 @@
             const y = c + v[1] * R * lift;
             const rr = base * (0.55 + 0.45 * Math.max(0, v[2]));
             const light = Math.max(0, dot(v, LIGHT));
-            ctx.fillStyle = pt.polar ? 'rgba(160,180,215,0.9)' : `hsl(95, 48%, ${22 + light * 10}%)`;
+            ctx.fillStyle = pt.polar ? 'rgba(160,180,215,0.9)' : `hsl(186, 85%, ${20 + light * 10}%)`;
             ctx.beginPath(); ctx.arc(x + rr * 0.15, y + rr * 0.45, rr, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = pt.polar ? `hsl(220, 40%, ${86 + light * 10}%)` : `hsl(${78 + pt.h * 10}, 72%, ${40 + light * 24}%)`;
+            ctx.fillStyle = pt.polar ? `hsl(220, 40%, ${86 + light * 10}%)` : `hsl(${179 - pt.h * 6}, 88%, ${38 + light * 22}%)`;
             ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI * 2); ctx.fill();
         }
 

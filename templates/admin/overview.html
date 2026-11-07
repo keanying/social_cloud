@@ -91,7 +91,7 @@
                 <a href="{{ url_for('admin.users') }}" class="cs-tile">
                     <span class="dots" aria-hidden="true">···</span>
                     <div><div class="k">{{ period }}</div><div class="t">调用最多的客户<br>{{ (top_users[0]['calls'] ~ ' 次调用') if top_users else '暂无客户调用' }}</div></div>
-                    <div class="flex items-end justify-between gap-2"><span class="big truncate">{{ top_users[0]['username'] if top_users else '—' }}</span>{% if top_users %}<span class="cs-bubbles">{% for u in top_users[:3] %}<span style="--c:{{ ['#2f5bff', '#34a3b4', '#0b1020'][loop.index0] }}">{{ u['username'][0]|upper }}</span>{% endfor %}</span>{% endif %}</div>
+                    <div class="flex items-end justify-between gap-2"><span class="big truncate">{{ top_users[0]['username'] if top_users else '—' }}</span>{% if top_users %}<span class="cs-bubbles">{% for u in top_users[:3] %}<span style="--c:{{ ['#0b65ff', '#34a3b4', '#0b1020'][loop.index0] }}">{{ u['username'][0]|upper }}</span>{% endfor %}</span>{% endif %}</div>
                 </a>
             </div>
         </section>
@@ -116,8 +116,8 @@
                 <svg viewBox="0 0 720 230" class="w-full min-w-[550px] h-auto block font-sans">
                     <defs>
                         <linearGradient id="callsGradAdmin" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#2f5bff" stop-opacity="0.18" />
-                            <stop offset="100%" stop-color="#2f5bff" stop-opacity="0.0" />
+                            <stop offset="0%" stop-color="#0b65ff" stop-opacity="0.18" />
+                            <stop offset="100%" stop-color="#0b65ff" stop-opacity="0.0" />
                         </linearGradient>
                         <linearGradient id="succGradAdmin" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stop-color="#10b981" stop-opacity="0.18" />
@@ -142,11 +142,11 @@
                     <path d="{{ chart_data['successes_area_path'] }}" fill="url(#succGradAdmin)" />
 
                     <!-- 趋势平滑贝塞尔曲线 -->
-                    <path d="{{ chart_data['calls_path'] }}" fill="none" stroke="#2f5bff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="{{ chart_data['calls_path'] }}" fill="none" stroke="#0b65ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                     <path d="{{ chart_data['successes_path'] }}" fill="none" stroke="#10b981" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
 
                     <!-- 动态悬停聚焦圆点 -->
-                    <circle class="chart-hover-dot calls-dot" cx="0" cy="0" r="3.5" fill="#2f5bff" stroke="#ffffff" stroke-width="1.8" style="display:none;pointer-events:none" />
+                    <circle class="chart-hover-dot calls-dot" cx="0" cy="0" r="3.5" fill="#0b65ff" stroke="#ffffff" stroke-width="1.8" style="display:none;pointer-events:none" />
                     <circle class="chart-hover-dot succ-dot" cx="0" cy="0" r="3" fill="#10b981" stroke="#ffffff" stroke-width="1.6" style="display:none;pointer-events:none" />
 
                     <!-- X 轴刻度与交互节点 -->

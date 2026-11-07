@@ -1,3 +1,5 @@
+from datetime import date
+
 from flask import Blueprint, redirect, render_template, session, url_for
 from configs.general_constants import DOMAIN_TO_NAME
 from src.db import get_db, setting
@@ -26,5 +28,5 @@ def index():
         demo_enabled=demo_enabled,
         parser_enabled=api_enabled and demo_enabled,
         platform_names=sorted(set(DOMAIN_TO_NAME.values())),
-        domain_map=DOMAIN_TO_NAME,
+        current_year=date.today().year,
     )

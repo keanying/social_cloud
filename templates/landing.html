@@ -6,60 +6,50 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Media Parser 提供多平台视频、图文、音频解析能力与简单易用的 API 接口。">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="32x32">
-    <title>Media Parser API - 多平台媒体解析服务</title>
+    <meta name="description" content="社媒云：复制分享链接，一键保存抖音、小红书、B站、快手等平台的视频、图集、实况照片与背景音乐。">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="48x48">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/brand-icon-180.png') }}">
+    <title>社媒云 - 复制链接，一键保存视频和图片</title>
     <script src="{{ url_for('static', filename='vendor/tailwind.js') }}"></script>
-    <script>tailwind.config={theme:{extend:{colors:{brand:'#4f46e5'},fontFamily:{sans:['Inter','ui-sans-serif','system-ui']}}}}</script>
+    <script>tailwind.config={theme:{extend:{colors:{brand:'#0b65ff'},fontFamily:{sans:['Inter','-apple-system','BlinkMacSystemFont','"PingFang SC"','"Hiragino Sans GB"','"Microsoft YaHei"','sans-serif']}}}}</script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
     <script>
-        /* 首帧前挂入场钩子：reduced-motion 或无 IO 能力时跳过，内容直接可见 */
         if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
             document.documentElement.classList.add('land-anim');
         }
     </script>
 </head>
-{% set featured = [('抖音','#111827'),('快手','#ff5a1f'),('小红书','#ff2442'),('哔哩哔哩','#00a1d6'),('微博','#e6162d'),('知乎','#0066ff'),('视频号','#07c160'),('今日头条','#f04142'),('网易云音乐','#d81e06'),('即梦AI','#7c3aed'),('豆包','#3b82f6'),('西瓜视频','#ff7a00')] %}
-{% set composer_platforms = ['抖音','快手','小红书'] %}
-<body class="lp font-sans antialiased selection:bg-indigo-100 selection:text-indigo-900">
-    <div class="lp-bg" aria-hidden="true"></div>
-    <header class="sticky top-0 z-50 pt-4 pb-2">
-        <div class="max-w-7xl mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
-            <a href="#top" class="flex items-center gap-3 shrink-0" aria-label="Media Parser 首页">
-                <img src="{{ url_for('static', filename='images/logo-web.png') }}" alt="" class="w-11 h-11 rounded-2xl bg-white p-1.5 shadow-[0_8px_20px_-10px_rgba(15,23,42,.35)]">
-                <span class="hidden sm:block leading-tight">
-                    <span class="block text-[17px] font-extrabold tracking-tight text-[#0b1020]">Media Parser</span>
-                    <span class="block text-xs text-slate-500">一个接口 · {{ platform_names|length }} 个平台</span>
-                </span>
-            </a>
-            <nav id="lpNav" class="pill-nav glass hidden lg:flex" aria-label="页面导航">
-                <a href="#parser" class="is-active">在线解析</a><a href="#capabilities">平台能力</a><a href="#deployment">部署方式</a><a href="#docs">接入示例</a><a href="#faq">常见问题</a>
+{% set palette = {'抖音':'#111827','快手':'#ff5a1f','小红书':'#ff2442','哔哩哔哩':'#00a1d6','微博':'#e6162d','知乎':'#0066ff','视频号':'#07c160','今日头条':'#f04142','网易云音乐':'#d81e06','即梦AI':'#7c3aed','豆包':'#3b82f6','西瓜视频':'#ff7a00','QQ音乐':'#31c27c','皮皮虾':'#ff6d3a','微信公众号':'#07c160','AcFun':'#fd4c5c','得物':'#111827','闲鱼':'#ffb800','虎牙':'#ff9600','美拍':'#ff3d7f','剪映':'#111827','央视频':'#1257d6','汽水音乐':'#0ab3a8','酷狗音乐':'#2c8ef8'} %}
+{% set globe_platforms = ['抖音','快手','小红书','哔哩哔哩','微博','知乎','视频号','今日头条','网易云音乐','即梦AI','豆包','西瓜视频'] %}
+<body class="lp font-sans antialiased selection:bg-blue-100 selection:text-blue-900">
+    <header id="siteNav" class="nav">
+        <div class="wrap nav-inner">
+            <a href="#top" class="brand" aria-label="社媒云 首页"><span class="brand-tile"><img src="{{ url_for('static', filename='images/brand-logo.png') }}" alt=""></span>社媒云</a>
+            <nav id="lpNav" class="nav-links hidden lg:flex" aria-label="页面导航">
+                <a href="#parser" class="is-active">在线解析</a>
+                <a href="#platforms">支持平台</a>
+                <a href="#guide">使用教程</a>
+                <a href="#features">能保存什么</a>
+                <a href="#faq">常见问题</a>
             </nav>
-            <div class="flex items-center gap-2.5">
-                <a href="https://github.com/ucmao/media-parser" target="_blank" rel="noopener noreferrer" aria-label="在 GitHub 查看 Media Parser 源码" title="GitHub 开源仓库" class="round-btn !w-auto px-3.5 gap-2 text-xs font-bold">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" class="w-[18px] h-[18px] fill-[#0b1020]"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.17.08 1.78 1.2 1.78 1.2 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.74-1.55-2.57-.3-5.27-1.29-5.27-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.9 10.9 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg>
-                    <span id="navStarBadge" class="hidden items-center gap-1">
-                        <svg viewBox="0 0 24 24" aria-hidden="true" class="w-3.5 h-3.5 fill-amber-400 stroke-amber-500"><path d="m12 2.5 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.3l-5.8 3.06 1.11-6.46-4.7-4.58 6.49-.94L12 2.5Z" stroke-width="1"/></svg>
-                        <span id="navGithubStars"></span>
-                    </span>
-                </a>
-                <a href="{{ url_for('auth.login') }}" class="round-btn hidden sm:inline-flex" title="登录控制台" aria-label="登录控制台">{{ icon('user', 'w-[18px] h-[18px]') }}</a>
-                <a href="{{ url_for('auth.register') }}" class="inline-flex h-[42px] items-center rounded-full bg-[#0b1020] px-5 text-sm font-bold text-white shadow-[0_10px_22px_-10px_rgba(11,16,32,.8)] hover:bg-black transition"><span class="sm:hidden">注册</span><span class="hidden sm:inline">创建账号</span></a>
+            <div class="flex items-center gap-1.5">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-light">登录</a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary">注册</a>
             </div>
         </div>
     </header>
+
     <main id="top" class="relative">
-        <section id="parser" class="max-w-7xl mx-auto px-4 sm:px-8 pt-6 lg:pt-10 scroll-mt-24">
+        <section id="parser" class="wrap pt-3 lg:pt-6 scroll-mt-24">
             <div id="stage" class="stage" data-state="idle">
                 <div class="stage-card">
                     <div class="stage-bg" aria-hidden="true"><div class="stage-rings"></div></div>
 
-                    <!-- 地球：Canvas 绘制 + 环绕的平台标签（static/js/globe.js） -->
                     <div class="globe-wrap" aria-hidden="true">
                         <div class="globe-inner">
                             <canvas id="globeCanvas"></canvas>
                             <div id="globeChips" class="globe-chips">
-                                {% for name, color in featured %}<span class="globe-chip" style="--c:{{ color }}"><b>{{ name[0] }}</b>{{ name }}</span>{% endfor %}
+                                {% for name in globe_platforms %}<span class="globe-chip" style="--c:{{ palette.get(name, '#0b65ff') }}"><b>{{ name[0] }}</b>{{ name }}</span>{% endfor %}
                             </div>
                             <div class="globe-pin"><i>✓</i><span id="globePinText">解析完成</span></div>
                         </div>
@@ -67,49 +57,47 @@
 
                     <div class="stage-left">
                         <div class="stage-copy">
-                            <span class="stage-eyebrow"><i></i>LIVE PARSER · {{ platform_names|length }} 个平台在线</span>
-                            <h1 class="stage-title mt-6">多平台媒体解析，<br><span class="soft">一个接口就够了。</span></h1>
-                            <p class="mt-5 max-w-[30rem] text-[15.5px] leading-7 text-white/80">粘贴任意支持平台的分享链接或整段分享文案，统一获取视频、图集、封面、音频与作者信息。无需浏览器环境，也可通过 API 接入你的业务。</p>
+                            <span class="hero-tag"><b>{{ platform_names|length }} 个平台</b>短视频 · 图文笔记 · 音乐</span>
+                            <h1 class="stage-title mt-6">看到喜欢的内容<br>复制链接就能存下来</h1>
+                            <p class="mt-5 text-[16.5px] leading-7 text-white/85">视频、图集、实况照片、背景音乐和文案，<br class="hidden sm:block">粘贴一条分享链接，一次帮你整理好。</p>
+                            <ul class="hero-points">
+                                <li>{{ icon('check', 'w-3.5 h-3.5') }}不用下载 App</li>
+                                <li>{{ icon('check', 'w-3.5 h-3.5') }}整段分享文案也能识别</li>
+                                <li>{{ icon('check', 'w-3.5 h-3.5') }}尽量保持原画质</li>
+                            </ul>
                         </div>
 
                         {% if not parser_enabled %}
-                        <div class="mt-6 rounded-2xl border border-white/30 bg-white/15 px-4 py-3 text-sm text-white flex items-center gap-2.5">
+                        <div class="mt-6 rounded-2xl bg-white/15 px-4 py-3 text-sm text-white flex items-center gap-2.5">
                             {{ icon('alert', 'w-4 h-4 shrink-0') }}
-                            <span><strong>在线体验维护中：</strong>当前在线解析体验已暂停服务，您仍可通过下方 API 文档接入调用。</span>
+                            <span><strong>在线解析维护中：</strong>暂时无法提交，请稍后再来。</span>
                         </div>
                         {% endif %}
 
-                        <!-- 聚合输入：一个输入框接收所有平台的链接/文案，自动识别平台 -->
                         <div class="composer">
-                            <label for="parseUrl" class="sr-only">媒体分享链接</label>
+                            <label for="parseUrl" class="sr-only">粘贴分享链接或分享文案</label>
                             <input type="text" id="hpWebsite" name="website" style="display:none !important; opacity:0; position:absolute; left:-9999px" tabindex="-1" autocomplete="off">
-                            <textarea id="parseUrl" rows="3" maxlength="2000" {{ 'disabled' if not parser_enabled }} placeholder="{{ '粘贴抖音、快手、小红书、B站等平台的分享链接或文案' if parser_enabled else '在线解析体验当前处于维护状态，暂时无法提交…' }}"></textarea>
+                            <textarea id="parseUrl" rows="3" maxlength="2000" {{ 'disabled' if not parser_enabled }} placeholder="{{ '粘贴分享链接，或直接粘贴整段分享文案' if parser_enabled else '在线解析维护中，暂时无法提交…' }}"></textarea>
                             <div class="composer-foot">
-                                <div class="composer-chips">
-                                    <span id="detectChip" class="p-chip p-chip--status"><i></i><span id="detectText">自动识别平台</span></span>
-                                    {% for name in composer_platforms %}<span class="p-chip" data-platform="{{ name }}">{{ name }}</span>{% endfor %}
-                                    <span class="p-chip p-chip--more" title="{{ platform_names|join('、') }}">+{{ platform_names|length - composer_platforms|length }}</span>
-                                </div>
+                                <span class="composer-hint"><span class="kbd">Ctrl</span><span class="kbd">Enter</span>快速解析</span>
                                 <div class="composer-actions">
                                     {% if parser_enabled %}
+                                    <button type="button" class="btn btn-light" onclick="pasteFromClipboard()">粘贴</button>
                                     <button id="parseBtn" type="button" onclick="handleParse()" class="search-go">开始解析</button>
                                     {% else %}
-                                    <button id="parseBtn" type="button" disabled class="search-go">服务维护中</button>
+                                    <button id="parseBtn" type="button" disabled class="search-go">维护中</button>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-4 flex flex-wrap items-center gap-2">
-                            {% if parser_enabled %}
-                            <button type="button" class="quick-chip" onclick="pasteFromClipboard()">{{ icon('clipboard', 'w-3.5 h-3.5') }}粘贴剪贴板</button>
-                            <button type="button" class="quick-chip" onclick="fillSampleUrl()">{{ icon('lightbulb', 'w-3.5 h-3.5') }}试试示例链接</button>
-                            <span class="hidden sm:inline text-xs text-white/60 ml-1">Ctrl / ⌘ + Enter 快速解析</span>
-                            {% else %}
-                            <a href="#docs" class="quick-chip">{{ icon('book', 'w-3.5 h-3.5') }}查看 API 接入说明</a>
-                            {% endif %}
+                        {% if parser_enabled %}
+                        <div class="hero-links">
+                            <button type="button" onclick="fillSampleUrl()">{{ icon('lightbulb', 'w-3.5 h-3.5') }}没有链接？试试示例</button>
+                            <a href="#guide">{{ icon('book', 'w-3.5 h-3.5') }}怎么复制分享链接</a>
                         </div>
+                        {% endif %}
 
-                        <div id="loadingState" class="hidden stage-loading"><span class="spin"></span>正在识别平台并获取媒体信息…</div>
+                        <div id="loadingState" class="hidden stage-loading">正在识别平台并获取媒体信息…</div>
                         <!-- 友好型解析提示/错误状态卡片 -->
                         <div id="errorState" class="hidden mt-5 rounded-[22px] border border-slate-200/80 bg-white p-5 sm:p-6 text-slate-700 shadow-[0_24px_50px_-24px_rgba(10,20,90,.6)] transition-all duration-200">
                             <div class="flex items-start gap-4">
@@ -130,17 +118,16 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- 结果卡片：解析成功后从右侧滑入 -->
                         <div id="stageResult" class="stage-result" aria-live="polite">
                             <div class="flex items-end justify-between gap-4">
                                 <div class="min-w-0">
-                                    <p id="stageResultMeta" class="text-sm font-semibold text-white/75">解析完成</p>
-                                    <h2 id="stageResultTitle" class="truncate">—</h2>
+                                    <p id="stageResultMeta" class="text-sm font-medium text-white/75">正在解析…</p>
+                                    <h2 id="stageResultTitle" class="truncate">识别平台中</h2>
                                 </div>
                                 <div class="flex gap-2 shrink-0">
-                                    <button type="button" class="round-btn round-btn--ghost" onclick="scrollResTrack(-1)" aria-label="上一组">←</button>
-                                    <button type="button" class="round-btn round-btn--ghost" onclick="scrollResTrack(1)" aria-label="下一组">→</button>
-                                    <button type="button" class="round-btn" onclick="resetStage()" title="解析新的链接" aria-label="解析新的链接">↺</button>
+                                    <button type="button" class="ghost-round" onclick="scrollResTrack(-1)" aria-label="上一组">←</button>
+                                    <button type="button" class="ghost-round" onclick="scrollResTrack(1)" aria-label="下一组">→</button>
+                                    <button type="button" class="ghost-round ghost-round--solid" onclick="resetStage()" title="解析新的链接" aria-label="解析新的链接">↺</button>
                                 </div>
                             </div>
                             <div id="resTrack" class="res-track"></div>
@@ -148,27 +135,10 @@
                     </div>
                 </div>
             </div>
-
-            <!-- 关键指标 -->
-            <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {% for ic, num, lbl, badge, badge_cls in [
-                    ('globe', platform_names|length|string, '支持平台', '持续更新', 'badge--blue'),
-                    ('video', '10 类', '结构化返回字段', '统一 JSON', 'badge--green'),
-                    ('lightbulb', '<100MB', '运行内存占用', '免浏览器', 'badge--green'),
-                    ('shield', '3 级', 'QPS 精细限流', '用户 · 密钥 · 平台', 'badge--blue')] %}
-                <div class="kpi glass" data-reveal style="--reveal-delay: {{ loop.index0 * 0.07 }}s">
-                    <span class="kpi-icon">{{ icon(ic, 'w-5 h-5') }}</span>
-                    <div class="min-w-0">
-                        <div class="flex items-center gap-2"><span class="kpi-num">{{ num }}</span><span class="badge {{ badge_cls }}">{{ badge }}</span></div>
-                        <div class="kpi-lbl">{{ lbl }}</div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
         </section>
 
         <!-- 解析结果详情（视觉预览 / JSON） -->
-        <section class="max-w-5xl mx-auto px-4 sm:px-8">
+        <section class="wrap" style="max-width:1040px">
             <!-- 解析结果区（支持视觉预览与 JSON 模式切换） -->
             <div id="resultState" class="hidden mt-8 rounded-[28px] border border-white/90 bg-white/80 backdrop-blur-xl overflow-hidden shadow-[0_30px_70px_-40px_rgba(30,41,110,.45)] scroll-mt-24">
                 <!-- 头部卡片：第一行 Meta/按钮，第二行 独占文案区 -->
@@ -293,128 +263,173 @@
             </div>
         </div>
 
-        <section id="capabilities" class="max-w-7xl mx-auto px-4 sm:px-8 pt-24 scroll-mt-24">
-            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6" data-reveal>
-                <div><p class="sec-eyebrow">One endpoint</p><h2 class="sec-title mt-3">面向真实业务的<br>解析能力</h2></div>
-                <p class="max-w-md text-slate-600 leading-7">解析器按平台独立维护，对外保持一致的数据结构。后台可随时关闭异常平台，不影响其他接口。</p>
+        <!-- 支持平台：双向跑马灯 -->
+        <section id="platforms" class="sec">
+            <div class="wrap flex flex-col lg:flex-row lg:items-end justify-between gap-4" data-reveal>
+                <div>
+                    <span class="sec-kicker">支持平台</span>
+                    <h2 class="sec-title">{{ platform_names|length }} 个平台，一个输入框</h2>
+                </div>
+                <p class="sec-desc lg:text-right">短视频、图文笔记、音乐、AI 创作平台都能用，不用记哪个平台去哪个网站。</p>
             </div>
-            <div class="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {% for cls, k, title, description, big, bubbles in [
-                    ('tile--blue', '01 · 媒体', '多类型媒体', '统一获取视频、图集、Live Photo、背景音频、封面及字幕。', '10 类字段', [('视','#1e3a8a'),('图','#0891b2'),('音','#7c3aed'),('字','#0f172a')]),
-                    ('tile--teal', '02 · 访问', '密钥与限流', '每位客户独立管理 API Key，支持用户级、密钥级和平台级 QPS。', '3 级限流', [('用','#0f766e'),('钥','#155e75'),('台','#0f172a')]),
-                    ('tile--ink', '03 · 运营', '状态可控制', '管理员可控制全局服务和单个平台，并配置客户有效期与积分。', '全局 + 单平台', []),
-                    ('tile--sun', '04 · 运维', '调用可追踪', '记录平台、响应状态、错误码和耗时，快速定位解析异常。', '毫秒级耗时', [('日','#0b1020'),('码','#b45309'),('时','#92400e')]),
-                    ('tile--white', '05 · 契约', '统一 JSON 返回', '所有平台共用 retcode / data / error_code 结构，错误码稳定可编程。', '1 套数据结构', []),
-                    ('tile--white', '06 · 扩展', '插件化解析器', 'ParserFactory 自动发现解析器，新增一个平台只需新增一个文件。', platform_names|length|string ~ ' 个平台', [('抖','#111827'),('快','#ff5a1f'),('红','#ff2442'),('B','#00a1d6')])] %}
-                <article class="tile {{ cls }}" data-reveal style="--reveal-delay: {{ (loop.index0 % 3) * 0.07 }}s">
-                    <span class="dots" aria-hidden="true">{{ '↗' if cls == 'tile--ink' else '···' }}</span>
-                    <div class="pr-12">
-                        <div class="k">{{ k }}</div>
-                        <h3>{{ title }}</h3>
-                        <p>{{ description }}</p>
+            {% set half = (platform_names|length / 2)|round(0, 'ceil')|int %}
+            <div class="mt-8 space-y-3" data-reveal>
+                {% for row in [platform_names[:half], platform_names[half:]] %}
+                <div class="marquee {{ 'marquee--rev' if loop.index == 2 }}" style="--dur: {{ 70 if loop.index == 1 else 80 }}s">
+                    <div class="marquee-track">
+                        {% for _ in range(2) %}{% for name in row %}<span class="pf"{% if _ == 1 %} aria-hidden="true"{% endif %}><b style="--c:{{ palette.get(name, ['#0b65ff','#0e1525','#0ab3a8','#5b6475'][loop.index0 % 4]) }}">{{ name[0] }}</b>{{ name }}</span>{% endfor %}{% endfor %}
                     </div>
-                    <div class="mt-6 flex items-end justify-between gap-3">
-                        <span class="big">{{ big }}</span>
-                        {% if bubbles %}<span class="bubbles">{% for ch, c in bubbles %}<span style="--c:{{ c }}">{{ ch }}</span>{% endfor %}</span>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="wrap mt-8" data-reveal>
+                <div class="stats">
+                    {% for num, unit, label in [(platform_names|length, '个', '支持的平台'), (10, '类', '可提取的内容类型'), (3, '步', '从复制到保存'), (0, '安装', '打开网页就能用')] %}
+                    <div class="stat">
+                        <div class="stat-num"><span data-count="{{ num }}">{{ num }}</span><small>{{ unit }}</small></div>
+                        <div class="stat-lbl">{{ label }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- 使用教程：三步 + 平台 Tabs -->
+        <section id="guide" class="sec wrap">
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-5" data-reveal>
+                <div>
+                    <span class="sec-kicker">使用教程</span>
+                    <h2 class="sec-title">三步保存，不用装任何东西</h2>
+                </div>
+                <div class="tabs" role="tablist" aria-label="选择平台查看分享入口">
+                    {% for key, label in [('douyin','抖音'), ('xhs','小红书'), ('bili','B站'), ('ks','快手')] %}
+                    <button type="button" role="tab" data-guide="{{ key }}" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ label }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="mt-8 grid md:grid-cols-3 gap-4">
+                <article class="step" data-reveal>
+                    <span class="step-no">1</span>
+                    <h3>在 App 里复制链接</h3>
+                    <p id="guideText">打开<b id="guideApp">抖音</b>作品，点右侧「<span id="guideBtn">分享</span>」，再点「复制链接」。</p>
+                    <div class="mock">
+                        <div class="text-[12px] text-slate-400" id="guideTitle">分享给朋友</div>
+                        <div class="mock-sheet">
+                            <div class="row">
+                                <div class="it"><span>{{ icon('users', 'w-4 h-4') }}</span>好友</div>
+                                <div class="it"><span>{{ icon('image', 'w-4 h-4') }}</span>朋友圈</div>
+                                <div class="it is-hit"><span>{{ icon('link', 'w-4 h-4') }}</span>复制链接</div>
+                                <div class="it"><span>{{ icon('tag', 'w-4 h-4') }}</span>更多</div>
+                            </div>
+                        </div>
                     </div>
                 </article>
-                {% endfor %}
-            </div>
-        </section>
-
-        <!-- 开源使用与部署方式 -->
-        <section id="deployment" class="max-w-7xl mx-auto px-4 sm:px-8 pt-24 scroll-mt-24">
-            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6" data-reveal>
-                <div><p class="sec-eyebrow">Open source &amp; deployment</p><h2 class="sec-title mt-3">完全开源自建，<br>按需灵活落地</h2></div>
-                <p class="max-w-md text-slate-600 leading-7">基于宽松的 MIT 协议开放，零商业授权门槛。解析引擎、业务数据与运行基础设施由部署者全权自主掌控。</p>
-            </div>
-            <div class="mt-10 grid md:grid-cols-3 gap-4 items-stretch">
-                {% for featured_card, badge, title, sub, price, unit, items, href, cta, external in [
-                    (false, 'MIT LICENSE', '个人与轻量自用', '适用于学习研究、个人工具开发与轻量级自动化集成', '¥0', '/ 永久开源', ['完整开放源码与标准 JSON 规范', 'Docker Compose 单机快速启动', '透明无暗桩，通过 GitHub 社区交流'], 'https://github.com/ucmao/media-parser', '查看源码与部署文档', true),
-                    (true, 'SELF-HOSTED GATEWAY', '团队私有网关', '适合将解析能力部署为团队或业务系统的统一内部服务', '开箱即用', '/ 内置中台管控', ['租户、API Key、有效期与积分体系', '用户 / 密钥 / 平台三级精细化流控', '平台熔断开关、调用日志与用量统计'], '#docs', '查看 API 接入方式', false),
-                    (false, 'DATA PRIVACY & COMPLIANCE', '私有自治与合规', '私有网络独立运行，数据不过第三方，保障业务稳定与合规', '自主掌控', '/ 本地私有运行', ['私网独立部署，无第三方调用与数据泄露风险', '目标平台 Cookie 与密钥凭据完全本地化自管', '自主把握频次，严格遵守目标平台使用规则'], 'https://github.com/ucmao/media-parser#%EF%B8%8F-%E5%BC%80%E6%BA%90%E5%8D%8F%E8%AE%AE--%E5%85%8D%E8%B4%A3%E5%A3%B0%E6%98%8E', '查看开源协议与合规须知', true)] %}
-                <div class="{{ 'tile tile--ink' if featured_card else 'tile glass !bg-white/60 text-[#0b1020]' }} !p-7" data-reveal style="--reveal-delay: {{ loop.index0 * 0.07 }}s">
-                    <div>
-                        <span class="badge {{ 'bg-white/15 text-white' if featured_card else 'bg-white text-slate-600' }}">{{ badge }}</span>
-                        <h3 class="!mt-4 !text-xl">{{ title }}</h3>
-                        <p>{{ sub }}</p>
-                        <div class="mt-6 flex items-baseline gap-1.5"><span class="text-4xl font-black tracking-tight {{ 'text-[#a3e635]' if featured_card }}">{{ price }}</span><span class="text-sm opacity-70">{{ unit }}</span></div>
-                        <ul class="mt-6 space-y-3 text-sm {{ 'text-white/85' if featured_card else 'text-slate-600' }}">
-                            {% for item in items %}<li class="flex items-center gap-3">{{ icon('check', 'w-4 h-4 shrink-0 ' ~ ('text-[#a3e635]' if featured_card else 'text-emerald-500')) }}<span>{{ item }}</span></li>{% endfor %}
-                        </ul>
+                <article class="step" data-reveal style="--reveal-delay:.08s">
+                    <span class="step-no">2</span>
+                    <h3>粘贴到社媒云</h3>
+                    <p>链接和整段分享文案都可以，社媒云会自动找出链接、识别平台。</p>
+                    <div class="mock">
+                        <div class="mock-input"><span id="guidePaste">7.22 复制打开抖音，看看【阿木的作品】https://v.douyin.com/…</span><span class="caret"></span></div>
+                        <div class="mock-btn">开始解析</div>
                     </div>
-                    <a href="{{ href }}" {% if external %}target="_blank" rel="noopener noreferrer"{% endif %} class="mt-8 block w-full rounded-full py-3 px-4 text-center text-sm font-bold transition {{ 'bg-white text-[#0b1020] hover:bg-slate-100' if featured_card else 'bg-[#0b1020] text-white hover:bg-black' }}">{{ cta }}</a>
-                </div>
-                {% endfor %}
-            </div>
-        </section>
-
-        <section id="docs" class="max-w-7xl mx-auto px-4 sm:px-8 pt-24 scroll-mt-24">
-            <div class="glass rounded-[32px] p-6 sm:p-10 grid lg:grid-cols-2 gap-10 items-center" data-reveal>
-                <div>
-                    <p class="sec-eyebrow">Quick start</p>
-                    <h2 class="sec-title mt-3">GET 接口，<br>小白也能用</h2>
-                    <p class="mt-4 text-slate-600 leading-7">注册并由管理员开通有效期后，在控制台创建 API Key。推荐使用请求头传递密钥，也兼容直接放入查询参数。</p>
-                    <div class="mt-7 flex flex-wrap gap-3">
-                        <a href="{{ url_for('auth.register') }}" class="rounded-full bg-[#0b1020] px-6 py-3 text-sm font-bold text-white hover:bg-black transition">注册账号</a>
-                        <a href="{{ url_for('auth.login') }}" class="rounded-full bg-white px-6 py-3 text-sm font-bold text-[#0b1020] shadow-sm hover:shadow transition">进入控制台</a>
+                </article>
+                <article class="step" data-reveal style="--reveal-delay:.16s">
+                    <span class="step-no">3</span>
+                    <h3>预览并保存</h3>
+                    <p>视频、图集、实况照片、背景音乐分开展示，点开即可预览、复制链接或保存。</p>
+                    <div class="mock">
+                        <div class="mock-res">
+                            <div class="m v">视频<em>1080P · 00:32</em></div>
+                            <div class="m">图集<em>9 张</em></div>
+                            <div class="m t">背景音乐<em>原声</em></div>
+                            <div class="m">文案<em>可一键复制</em></div>
+                        </div>
                     </div>
-                </div>
-                <div class="rounded-[26px] bg-[#0b1020] p-6 sm:p-7 font-mono text-[13px] leading-7 text-slate-300 overflow-x-auto custom-scroll shadow-[0_30px_60px_-30px_rgba(11,16,32,.8)]">
-                    <div class="flex items-center justify-between mb-5"><div class="flex gap-2"><span class="w-3 h-3 rounded-full bg-[#ff5f57]"></span><span class="w-3 h-3 rounded-full bg-[#febc2e]"></span><span class="w-3 h-3 rounded-full bg-[#28c840]"></span></div><span class="text-xs text-slate-500">GET /api/v1/parse</span></div>
-                    <p class="text-slate-500"># 最简单的 URL 调用方式</p>
-                    <p class="mt-1 whitespace-nowrap"><span class="text-sky-300">GET</span> /api/v1/parse?<span class="text-[#a3e635]">key</span>=mp-xxx&amp;<span class="text-[#a3e635]">url</span>=分享链接</p>
-                    <p class="mt-5 text-slate-500"># 推荐：密钥放在请求头</p>
-                    <p class="mt-1 whitespace-nowrap"><span class="text-violet-300">curl</span> --get <span class="text-emerald-300">'https://your-domain.com/api/v1/parse'</span> \</p>
-                    <p class="pl-4 whitespace-nowrap">--header <span class="text-emerald-300">'Authorization: Bearer mp-xxx'</span> \</p>
-                    <p class="pl-4 whitespace-nowrap">--data-urlencode <span class="text-emerald-300">'url=https://v.douyin.com/xxx/'</span></p>
-                    <p class="mt-5 text-slate-500"># 返回</p>
-                    <p>{ <span class="text-sky-300">"succ"</span>: <span class="text-amber-300">true</span>, <span class="text-sky-300">"data"</span>: { <span class="text-sky-300">"platform"</span>: <span class="text-emerald-300">"抖音"</span>, <span class="text-sky-300">"video_url"</span>: <span class="text-emerald-300">"https://..."</span> } }</p>
-                </div>
+                </article>
             </div>
         </section>
 
-        <!-- 常见问题 FAQ 板块 -->
-        <section id="faq" class="max-w-5xl mx-auto px-4 sm:px-8 pt-24 pb-20 scroll-mt-24">
+        <!-- 能保存什么 -->
+        <section id="features" class="sec wrap">
+            <div data-reveal>
+                <span class="sec-kicker">能保存什么</span>
+                <h2 class="sec-title">一条链接里的东西，都给你拆好</h2>
+                <p class="sec-desc">同一条分享链接里的视频、图片、声音和文字，会按类型分开整理好，挑你要的保存。</p>
+            </div>
+            <div class="mt-8 grid lg:grid-cols-3 gap-4">
+                <article class="feat feat--brand lg:col-span-2" data-reveal>
+                    <h3>视频</h3>
+                    <p>尽量获取平台提供的最高清晰度；合集、多段视频会全部列出来，逐个预览。</p>
+                    <div class="player"><span class="q">1080P</span><span class="play"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg></span><span class="bar"><i></i></span></div>
+                </article>
+                <article class="feat" data-reveal style="--reveal-delay:.08s">
+                    <h3>图集与实况照片</h3>
+                    <p>笔记里的每一张图都单独给出，实况照片连同动态视频一起保存。</p>
+                    <div class="gallery"><span></span><span class="live"></span><span></span></div>
+                </article>
+                <article class="feat feat--ink" data-reveal>
+                    <h3>背景音乐</h3>
+                    <p>喜欢视频里的配乐？单独提取音频，音乐平台的歌曲链接也能识别。</p>
+                    <div class="wave">{% for h in [40,70,55,90,62,35,80,58,95,45,72,50,85,38,66,52,78,44] %}<i style="--h:{{ h }}%;--d:{{ (loop.index0 * 0.09)|round(2) }}s"></i>{% endfor %}</div>
+                </article>
+                <article class="feat lg:col-span-2" data-reveal style="--reveal-delay:.08s">
+                    <h3>文案、字幕与作者</h3>
+                    <p>作品标题、正文文案、平台自带字幕或歌词按时间轴整理，作者昵称和头像也一并给出。</p>
+                    <div class="subs">
+                        <div><code>00:00.6</code><span>海风吹过来的时候</span></div>
+                        <div><code>00:02.1</code><span>太阳刚好落到海平面</span></div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- 常见问题 -->
+        <section id="faq" class="sec wrap pb-24" style="max-width:880px">
             <div class="text-center" data-reveal>
-                <p class="sec-eyebrow">FAQ</p>
-                <h2 class="sec-title mt-3">常见问题解答</h2>
-                <p class="mt-3 text-slate-600 leading-7">解答你在对接与使用 Media Parser API 过程中的常见疑问。</p>
+                <span class="sec-kicker">常见问题</span>
+                <h2 class="sec-title">使用前你可能想知道</h2>
             </div>
-            <div class="mt-10 space-y-3">
+            <div class="mt-8 space-y-3">
                 {% for q, a in [
-                    ('解析出来的视频和图集是高清无水印的吗？', 'Media Parser 会尽量返回目标平台当前可获取的原始媒体地址，不主动对资源进行二次压缩。实际清晰度和水印情况取决于作品、平台接口、登录状态及平台后续调整，无法对所有链接作统一保证。'),
-                    ('提取出的音视频/图片直链会过期或遭遇防盗链吗？', '可能会。媒体地址通常由目标平台的 CDN 提供，可能包含时效签名、登录校验或防盗链策略，具体有效期由平台决定。对于拥有合法保存权且需要持久化的内容，请在解析后及时转存到自己的存储服务。'),
-                    ('遇到目标平台改版导致解析失败怎么办？', '请先更新到项目最新版本，并检查该平台是否需要 Cookie 等额外配置。如果问题仍然存在，可携带脱敏后的示例链接和错误日志提交 GitHub Issue。开源自部署实例不会自动热更新，升级前请先在自己的环境中验证。'),
-                    ('如何获取和配置 API Key？', '自部署后，首次访问 <code class="font-mono text-sm">/auth/setup</code> 创建管理员。用户登录控制台后可以创建和管理自己的 API Key；调用接口时推荐使用 <code class="font-mono text-sm">Authorization: Bearer mp-xxx</code>，也兼容 <code class="font-mono text-sm">?key=mp-xxx</code> 查询参数。'),
-                    ('QPS、有效期和解析积分如何配置？', '这些限制均由自部署实例的管理员配置，并非固定商业套餐。默认新用户试用期为 7 天、初始积分为 100、账号限制为 2 QPS；管理员可在后台调整。触发 QPS 限制时返回 429，积分耗尽时返回 402，账号未开通或过期时返回 403。')] %}
-                <details class="faq-item glass group" data-reveal {{ 'open' if loop.first }}>
-                    <summary class="flex items-center justify-between gap-4 cursor-pointer text-base sm:text-lg font-bold text-[#0b1020]">
-                        <span>{{ q }}</span>
-                        <span class="round-btn !w-9 !h-9 shrink-0 group-open:rotate-45 transition-transform" aria-hidden="true">+</span>
-                    </summary>
-                    <p class="mt-4 text-slate-600 leading-7 text-sm sm:text-base">{{ a|safe }}</p>
+                    ('保存下来的视频是高清无水印的吗？', '社媒云会尽量获取平台当前提供的原始画质，不会再压缩一遍。不过清晰度和是否带水印取决于作品本身和平台的规则，个别作品可能只能拿到带水印或较低清晰度的版本。'),
+                    ('解析失败了怎么办？', '先确认作品是公开可见的（私密、仅好友可见、已删除的作品无法解析），再检查复制的是不是完整的分享链接。平台偶尔调整规则会导致暂时失败，可以稍后再试。'),
+                    ('为什么过一段时间链接就打不开了？', '视频和图片的地址由平台提供，通常带有时效，过期后就会失效。解析完成后请尽快预览和保存。'),
+                    ('需要注册吗？有次数限制吗？', '不注册也可以直接在首页解析，为防止滥用，同一网络每分钟最多解析 5 次。注册登录后可以在控制台查看自己的解析记录。'),
+                    ('可以保存别人的作品吗？', '请只保存你自己发布的、或已获得作者授权的内容，用于个人学习与收藏。转载、二次发布或商用前请先取得原作者许可，并遵守各平台的用户协议。')] %}
+                <details class="faq-item" data-reveal {{ 'open' if loop.first }}>
+                    <summary><span>{{ q }}</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></summary>
+                    <p>{{ a }}</p>
                 </details>
                 {% endfor %}
             </div>
         </section>
     </main>
-    <!-- 浮动气泡提示容器 (Landing Toast Notification) -->
     <div id="landingToastContainer" class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-2.5 pointer-events-none w-auto max-w-[90vw]"></div>
 
-    <footer class="max-w-7xl mx-auto px-4 sm:px-8 pb-8">
-        <div class="glass rounded-full px-5 sm:px-7 py-4 flex flex-col sm:flex-row gap-3 justify-between items-center text-sm text-slate-500">
-            <div class="flex items-center gap-3">
-                <img src="{{ url_for('static', filename='images/logo-web.png') }}" alt="" class="w-8 h-8 rounded-xl bg-white p-1">
-                <span>Media Parser API · 多平台媒体解析服务</span>
+    <footer class="border-t border-[#e6eaf2] bg-white">
+        <div class="wrap py-10 flex flex-col md:flex-row gap-8 justify-between">
+            <div class="max-w-sm">
+                <a href="#top" class="brand"><span class="brand-tile"><img src="{{ url_for('static', filename='images/brand-logo.png') }}" alt=""></span>社媒云</a>
+                <p class="mt-3 text-sm leading-6 text-[#5b6475]">复制链接，一键保存社交媒体上的视频和图片。请仅保存自有或已获授权的内容，尊重原作者版权。</p>
             </div>
-            <div class="flex items-center gap-6">
-                <span class="inline-flex items-center gap-2 select-none">
-                    <span class="w-2 h-2 rounded-full {{ 'bg-emerald-500' if api_enabled else 'bg-amber-500' }}"></span>
-                    <span>{{ '系统正常运行' if api_enabled else '系统维护中' }}</span>
-                </span>
-                <a class="hover:text-[#0b1020] transition" href="https://github.com/ucmao/media-parser" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <div class="flex gap-14 text-sm">
+                <div class="space-y-2.5">
+                    <div class="font-semibold text-[#0e1525]">产品</div>
+                    <a href="#parser" class="block text-[#5b6475] hover:text-[#0b65ff]">在线解析</a>
+                    <a href="#platforms" class="block text-[#5b6475] hover:text-[#0b65ff]">支持平台</a>
+                    <a href="#guide" class="block text-[#5b6475] hover:text-[#0b65ff]">使用教程</a>
+                </div>
+                <div class="space-y-2.5">
+                    <div class="font-semibold text-[#0e1525]">账号</div>
+                    <a href="{{ url_for('auth.login') }}" class="block text-[#5b6475] hover:text-[#0b65ff]">登录</a>
+                    <a href="{{ url_for('auth.register') }}" class="block text-[#5b6475] hover:text-[#0b65ff]">注册</a>
+                    <a href="#faq" class="block text-[#5b6475] hover:text-[#0b65ff]">常见问题</a>
+                </div>
             </div>
+        </div>
+        <div class="wrap py-5 border-t border-[#e6eaf2] flex flex-col sm:flex-row gap-2 justify-between text-xs text-[#8b93a5]">
+            <span>© {{ current_year }} 社媒云</span>
+            <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full {{ 'bg-emerald-500' if api_enabled else 'bg-amber-500' }}"></span>{{ '服务正常' if api_enabled else '服务维护中' }}</span>
         </div>
     </footer>
     <script>
@@ -449,22 +464,19 @@
         function clearParser(){
             input.value = '';
             document.getElementById('errorState').classList.add('hidden');
-            if (typeof updateDetectedPlatform === 'function') updateDetectedPlatform();
             input.focus();
         }
 
         function fillSampleUrl(){
             input.value = 'https://www.bilibili.com/video/BV1xx411c7mD';
             document.getElementById('errorState').classList.add('hidden');
-            updateDetectedPlatform();
             input.focus();
             showToast('已填入示例链接，可直接点击“开始解析”', 'success', 2500);
         }
         async function pasteFromClipboard(){
             try {
                 input.value = await navigator.clipboard.readText();
-                updateDetectedPlatform();
-                input.focus();
+                    input.focus();
                 showToast('已从剪贴板粘贴内容', 'success', 2000);
             } catch {
                 showToast('无法直接读取剪贴板，请使用快捷键 Ctrl+V / ⌘+V 粘贴', 'warning', 3500);
@@ -1163,37 +1175,15 @@
         }
 
         /* ---- 地球舞台：输入时识别平台、解析时切换状态、成功后生成结果卡片 ---- */
-        const DOMAIN_MAP = {{ domain_map|tojson }};
         const stageEl = document.getElementById('stage');
         function setStageState(state){ if(stageEl) stageEl.dataset.state = state; }
+        function showStageSkeleton(){
+            const track = document.getElementById('resTrack');
+            if(track) track.innerHTML = Array.from({length: 4}, () => '<div class="res-skel"><i style="top:18px;right:110px"></i><i style="bottom:44px"></i><i style="bottom:24px;right:80px"></i></div>').join('');
+            document.getElementById('stageResultMeta').textContent = '正在解析…';
+            document.getElementById('stageResultTitle').textContent = '识别平台中';
+        }
 
-        function detectPlatform(text){
-            const match = (text || '').match(/https?:\/\/[^\s"'<>，。]+/i);
-            if(!match) return '';
-            let host = '';
-            try { host = new URL(match[0]).hostname.toLowerCase(); } catch { return ''; }
-            let best = '';
-            for(const domain of Object.keys(DOMAIN_MAP)){
-                const d = domain.toLowerCase();
-                if((host === d || host.endsWith('.' + d)) && d.length > best.length) best = d;
-            }
-            return best ? DOMAIN_MAP[best] : '';
-        }
-        function updateDetectedPlatform(){
-            const name = detectPlatform(input.value);
-            const chip = document.getElementById('detectChip');
-            const label = document.getElementById('detectText');
-            if(!chip || !label) return;
-            let listed = false;
-            document.querySelectorAll('.composer-chips [data-platform]').forEach(el => {
-                const hit = !!name && el.dataset.platform === name;
-                el.classList.toggle('is-hit', hit);
-                listed = listed || hit;
-            });
-            chip.classList.toggle('is-hit', !!name);
-            label.textContent = name ? (listed ? '已识别' : `已识别 · ${name}`) : (input.value.trim() ? '未识别到链接' : '自动识别平台');
-        }
-        input.addEventListener('input', updateDetectedPlatform);
 
         function escapeHtml(value){
             return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -1249,8 +1239,8 @@
             });
             if(!videos.length && !imageCount && cover) cards.push(mediaCard(cover, '封面', '高清封面', 'imageContainer'));
             if(safeHttpUrl(data.audio_url)) cards.push(`<button type="button" class="res-card res-card--teal" onclick="jumpTo('audioContainer')"><span class="tag">音频</span><div><div class="big">♪ 音频</div><div class="text-xs opacity-80 mt-1">背景音乐 / 独立音轨</div></div><span class="go">↗</span></button>`);
-            if(subtitles.length) cards.push(`<button type="button" class="res-card res-card--sun" onclick="jumpTo('subtitleContainer')"><span class="tag">字幕</span><div><div class="big">${subtitles.length} 条</div><div class="text-xs opacity-75 mt-1">字幕 / 歌词时间轴</div></div><span class="go">↗</span></button>`);
-            cards.push(`<button type="button" class="res-card res-card--plain" onclick="jumpTo('resultState')"><span class="tag" style="background:#eef2ff">详情</span><div><div class="big">完整结果</div><div class="text-xs text-slate-500 mt-1">视觉预览 · JSON 原始结构</div></div><span class="go">↓</span></button>`);
+            if(subtitles.length) cards.push(`<button type="button" class="res-card res-card--sky" onclick="jumpTo('subtitleContainer')"><span class="tag">字幕</span><div><div class="big">${subtitles.length} 条</div><div class="text-xs opacity-75 mt-1">字幕 / 歌词时间轴</div></div><span class="go">↗</span></button>`);
+            cards.push(`<button type="button" class="res-card res-card--plain" onclick="jumpTo('resultState')"><span class="tag" style="background:#eef4ff">详情</span><div><div class="big">完整结果</div><div class="text-xs text-slate-500 mt-1">视觉预览 · JSON 原始结构</div></div><span class="go">↓</span></button>`);
 
             track.innerHTML = cards.map((html, i) => html.replace('<button type="button" class="res-card', `<button type="button" style="--i:${i}" class="res-card`)).join('');
             track.scrollLeft = 0;
@@ -1276,6 +1266,7 @@
             }
 
             button.disabled = true;
+            showStageSkeleton();
             setStageState('loading');
             loading.classList.remove('hidden');
             error.classList.add('hidden');
@@ -1323,63 +1314,91 @@
             }
         }
         input.addEventListener('keydown',event=>{if((event.metaKey||event.ctrlKey)&&event.key==='Enter')handleParse()});
-        fetch('https://api.github.com/repos/ucmao/media-parser',{headers:{Accept:'application/vnd.github+json'}}).then(res=>res.ok?res.json():Promise.reject()).then(repo=>{if(repo&&repo.stargazers_count!==undefined){const countStr=new Intl.NumberFormat('en',{notation:'compact',maximumFractionDigits:1}).format(repo.stargazers_count);const navEl=document.getElementById('navGithubStars'),navBadge=document.getElementById('navStarBadge');if(navEl)navEl.textContent=countStr;if(navBadge){navBadge.classList.remove('hidden');navBadge.classList.add('inline-flex')}}}).catch(()=>{});
     </script>
 
-
-    <!-- 动效：地球 Canvas + Lenis 惯性滚动（均为本地静态资源，失败时页面功能不受影响） -->
     <script src="{{ url_for('static', filename='js/globe.js') }}" defer></script>
     <script src="{{ url_for('static', filename='vendor/lenis.min.js') }}" defer></script>
     <script>
-        /* ---- 入场系统：IntersectionObserver + CSS 过渡 ---- */
         (function () {
-            if (!document.documentElement.classList.contains('land-anim')) return;
-            try {
-                const io = new IntersectionObserver((entries) => {
-                    for (const entry of entries) {
-                        if (!entry.isIntersecting) continue;
-                        entry.target.classList.add('is-inview');
-                        io.unobserve(entry.target);
-                    }
-                }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
-                document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
-            } catch (e) {
-                document.documentElement.classList.remove('land-anim'); // 兜底：内容完整可读
-            }
-        })();
+            const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        /* ---- 导航胶囊高亮当前所在区块 ---- */
-        (function () {
+            /* 导航：滚动后出现底色 + 高亮当前区块 */
+            const nav = document.getElementById('siteNav');
+            const onScroll = () => nav && nav.classList.toggle('is-scrolled', window.scrollY > 8);
+            window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
             const links = Array.from(document.querySelectorAll('#lpNav a'));
-            const sections = links.map((a) => document.querySelector(a.getAttribute('href'))).filter(Boolean);
-            if (!sections.length || !('IntersectionObserver' in window)) return;
-            const io = new IntersectionObserver((entries) => {
-                entries.forEach((entry) => {
-                    if (!entry.isIntersecting) return;
-                    links.forEach((a) => a.classList.toggle('is-active', a.getAttribute('href') === '#' + entry.target.id));
-                });
-            }, { rootMargin: '-45% 0px -50% 0px' });
-            sections.forEach((s) => io.observe(s));
-        })();
+            const targets = links.map((a) => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+            if ('IntersectionObserver' in window && targets.length) {
+                const spy = new IntersectionObserver((entries) => entries.forEach((e) => {
+                    if (e.isIntersecting) links.forEach((a) => a.classList.toggle('is-active', a.getAttribute('href') === '#' + e.target.id));
+                }), { rootMargin: '-45% 0px -50% 0px' });
+                targets.forEach((t) => spy.observe(t));
+            }
 
-        /* ---- Lenis 惯性滚动 ---- */
-        window.addEventListener('DOMContentLoaded', () => {
-            if (matchMedia('(prefers-reduced-motion: reduce)').matches || !window.Lenis) return;
-            document.documentElement.classList.remove('scroll-smooth');
-            const lenis = new Lenis({ lerp: 0.1 });
-            window.__lenis = lenis;
-            const raf = (time) => { lenis.raf(time); requestAnimationFrame(raf); };
-            requestAnimationFrame(raf);
-            document.querySelectorAll('a[href^="#"]').forEach((a) => {
-                a.addEventListener('click', (e) => {
-                    const hash = a.getAttribute('href');
-                    if (hash.length > 1 && document.querySelector(hash)) {
-                        e.preventDefault();
-                        lenis.scrollTo(hash, { offset: -80 });
-                    }
+            /* 入场 + Number Ticker */
+            const countUp = (el) => {
+                const end = Number(el.dataset.count) || 0;
+                if (reduce || !end) { el.textContent = end; return; }
+                const t0 = performance.now(), dur = 1200;
+                const step = (t) => {
+                    const p = Math.min(1, (t - t0) / dur);
+                    el.textContent = Math.round(end * (1 - Math.pow(1 - p, 3)));
+                    if (p < 1) requestAnimationFrame(step);
+                };
+                el.textContent = '0';
+                requestAnimationFrame(step);
+            };
+            if ('IntersectionObserver' in window) {
+                const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+                    if (!e.isIntersecting) return;
+                    e.target.classList.add('is-inview');
+                    e.target.querySelectorAll('[data-count]').forEach(countUp);
+                    io.unobserve(e.target);
+                }), { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+                document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+            } else {
+                document.documentElement.classList.remove('land-anim');
+            }
+
+            /* Card Spotlight：卡片跟随鼠标的高光 */
+            document.querySelectorAll('.feat').forEach((card) => {
+                card.addEventListener('pointermove', (e) => {
+                    const r = card.getBoundingClientRect();
+                    card.style.setProperty('--mx', `${e.clientX - r.left}px`);
+                    card.style.setProperty('--my', `${e.clientY - r.top}px`);
                 });
             });
-        });
+
+            /* 使用教程 Tabs：切换各平台的分享入口说明 */
+            const guide = {
+                douyin: { app: '抖音', btn: '分享', title: '分享给朋友', paste: '7.22 复制打开抖音，看看【阿木的作品】https://v.douyin.com/…' },
+                xhs: { app: '小红书', btn: '分享', title: '分享至', paste: '【阿木的笔记】海边日落 http://xhslink.com/… 复制本条信息，打开小红书' },
+                bili: { app: 'B站', btn: '分享', title: '分享到', paste: '【海边日落延时】https://b23.tv/…' },
+                ks: { app: '快手', btn: '分享', title: '分享到', paste: 'https://v.kuaishou.com/… 阿木的作品 复制此消息，打开快手' },
+            };
+            document.querySelectorAll('[data-guide]').forEach((tab) => tab.addEventListener('click', () => {
+                const g = guide[tab.dataset.guide]; if (!g) return;
+                document.querySelectorAll('[data-guide]').forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+                document.getElementById('guideApp').textContent = g.app;
+                document.getElementById('guideBtn').textContent = g.btn;
+                document.getElementById('guideTitle').textContent = g.title;
+                document.getElementById('guidePaste').textContent = g.paste;
+            }));
+
+            /* Lenis 惯性滚动 */
+            window.addEventListener('DOMContentLoaded', () => {
+                if (reduce || !window.Lenis) return;
+                document.documentElement.classList.remove('scroll-smooth');
+                const lenis = new Lenis({ lerp: 0.1 });
+                window.__lenis = lenis;
+                const raf = (time) => { lenis.raf(time); requestAnimationFrame(raf); };
+                requestAnimationFrame(raf);
+                document.querySelectorAll('a[href^="#"]').forEach((a) => a.addEventListener('click', (e) => {
+                    const hash = a.getAttribute('href');
+                    if (hash.length > 1 && document.querySelector(hash)) { e.preventDefault(); lenis.scrollTo(hash, { offset: -72 }); }
+                }));
+            });
+        })();
     </script>
 </body>
 </html>

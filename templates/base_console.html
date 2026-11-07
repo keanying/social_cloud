@@ -6,8 +6,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="32x32">
-    <title>{% block title %}控制台{% endblock %} · Media Parser</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="48x48">
+    <title>{% block title %}控制台{% endblock %} · 社媒云</title>
     <script src="{{ url_for('static', filename='vendor/tailwind.js') }}"></script>
     <script>
       tailwind.config = {
@@ -16,17 +16,17 @@
           extend: {
             colors: {
               brand: {
-                DEFAULT: '#2f5bff',
-                50: '#eef3ff',
-                100: '#dfe8ff',
-                200: '#c4d4ff',
-                300: '#9db6ff',
-                400: '#6f8fff',
-                500: '#4a6dff',
-                600: '#2f5bff',
-                700: '#2246e0',
-                800: '#1f3bb5',
-                900: '#1e358f',
+                DEFAULT: '#0b65ff',
+                50: '#eef4ff',
+                100: '#dbe8ff',
+                200: '#bcd4ff',
+                300: '#8db6ff',
+                400: '#5795ff',
+                500: '#2a7aff',
+                600: '#0b65ff',
+                700: '#0052e0',
+                800: '#0544b5',
+                900: '#0a3a8f',
               }
             },
             fontFamily: {
@@ -85,9 +85,9 @@
     <!-- 顶栏：品牌 · 胶囊导航 · 圆形操作按钮 -->
     <header class="cs-top">
         <a class="flex items-center gap-3 shrink-0 min-w-0" href="{{ url_for('web.index') }}" target="_blank" title="打开首页">
-            <img src="{{ url_for('static', filename='images/logo-web.png') }}" alt="Logo" class="w-11 h-11 rounded-2xl bg-white p-1.5 shadow-[0_8px_20px_-10px_rgba(15,23,42,.35)]">
+            <img src="{{ url_for('static', filename='images/brand-logo.png') }}" alt="社媒云" class="w-11 h-11 rounded-2xl bg-white p-2 object-contain shadow-[0_8px_20px_-10px_rgba(15,23,42,.35)]">
             <span class="hidden sm:block leading-tight min-w-0">
-                <span class="block text-[17px] font-extrabold tracking-tight text-[#0b1020]">Media Parser</span>
+                <span class="block text-[18px] font-extrabold tracking-wide text-[#0e1525]">社媒云</span>
                 <span class="block text-xs text-slate-500 truncate">{{ '管理后台 · 解析服务运营' if is_admin else '控制台 · 开发者中心' }}</span>
             </span>
         </a>
@@ -263,7 +263,7 @@ function initChartInteractions() {
             tooltip.innerHTML = `
                 <div class="tt-title">${date}</div>
                 <div class="tt-row">
-                    <span style="display:flex;align-items:center;gap:6px"><i class="tt-dot" style="background:#2f5bff"></i>总调用</span>
+                    <span style="display:flex;align-items:center;gap:6px"><i class="tt-dot" style="background:#0b65ff"></i>总调用</span>
                     <strong>${calls} 次</strong>
                 </div>
                 <div class="tt-row">
@@ -328,7 +328,7 @@ function initToasts() {
     bubbles.forEach(bubble => {
         const text = (bubble.querySelector('.toast-content') ? bubble.querySelector('.toast-content').textContent : '').trim();
         // 欢迎语提示停留 6 秒，其他常规提示保持 3.5 秒
-        const duration = text.includes('欢迎使用 Media Parser') ? 6000 : 3500;
+        const duration = text.includes('欢迎使用社媒云') ? 6000 : 3500;
         let timer = setTimeout(() => dismissToast(bubble), duration);
         bubble.addEventListener('mouseenter', () => clearTimeout(timer));
         bubble.addEventListener('mouseleave', () => {
