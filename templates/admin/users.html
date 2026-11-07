@@ -89,7 +89,13 @@
                                 <input type="checkbox" class="row-checkbox rounded border-slate-300 text-brand focus:ring-brand/20 cursor-pointer" value="{{ user['id'] }}">
                             </td>
                             <td class="px-3 py-3 font-mono text-slate-400 font-medium">#{{ user['id'] }}</td>
-                            <td class="px-3 py-3 whitespace-nowrap font-bold text-slate-900">{{ user['username'] }}</td>
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                {% set av_colors = ['#0b65ff', '#0ab3b1', '#f59e0b', '#ef4444', '#8b5cf6', '#10b981', '#0e1525'] %}
+                                <span class="cs-avatar-cell">
+                                    <span class="cs-avatar-sm" style="--av: {{ av_colors[user['id'] % av_colors|length] }}">{{ user['username'][0]|upper }}</span>
+                                    <span class="font-semibold text-slate-900 truncate max-w-[220px]" title="{{ user['username'] }}">{{ user['username'] }}</span>
+                                </span>
+                            </td>
                             <td class="px-3 py-3 whitespace-nowrap text-center">
                                 <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {{ 'bg-indigo-50 text-brand border border-indigo-200' if user['role']=='admin' else 'bg-slate-100 text-slate-600 border border-slate-200' }}">
                                     {{ '管理员' if user['role']=='admin' else '客户' }}
@@ -126,17 +132,13 @@
                             <td class="td-action px-3 py-3 whitespace-nowrap text-right">
                                 <div class="flex items-center justify-end gap-1.5">
                                     {% if user['role'] != 'admin' %}
-                                    <button type="button" class="px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition shadow-xs"
+                                    <button type="button" class="cs-row-btn"
                                         onclick="openAdminEditUserModal({{ user['id'] }}, '{{ user['username']|e }}', {{ user['credits'] if user['credits'] is not none else -1 }}, {{ user['qps_limit'] or 2 }}, '{{ format_local_date(user['expires_at']) if user['expires_at'] else '' }}')">
                                         编辑
                                     </button>
                                     <div class="action-dropdown relative inline-block text-left" data-dropdown="user-{{ user['id'] }}">
                                         <button type="button" class="action-dropdown-trigger p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition" onclick="toggleActionDropdown(this, event)" title="更多操作" aria-label="更多操作">
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                                                <circle cx="12" cy="5" r="2.2"></circle>
-                                                <circle cx="12" cy="12" r="2.2"></circle>
-                                                <circle cx="12" cy="19" r="2.2"></circle>
-                                            </svg>
+                                            {{ ms('more_horiz') }}
                                         </button>
                                         <div class="action-dropdown-menu absolute right-0 mt-1 w-32 bg-white rounded-xl border border-slate-200 shadow-lg py-1 z-30 hidden">
                                             <button type="button" class="action-dropdown-item w-full flex items-center gap-2 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
@@ -357,19 +359,38 @@ function toggleActionDropdown(triggerBtn, e) {
     }
     const container = triggerBtn.closest('.action-dropdown');
     if (!container) return;
-    const menu = container.querySelector('.action-dropdown-menu');
+    const menu = container._menu || container.querySelector('.action-dropdown-menu');
+    if (!menu) return;
+    container._menu = menu;
+    menu._home = container;
     const isHidden = menu.classList.contains('hidden');
     closeAllActionDropdowns();
     if (isHidden) {
+        // 打开时挂到 body 下并用 fixed 定位：不会被表格滚动容器裁切，也不受毛玻璃卡片的定位上下文影响
+        document.body.appendChild(menu);
+        menu.classList.add('is-floating');
         menu.classList.remove('hidden');
+        const rect = triggerBtn.getBoundingClientRect();
+        const width = menu.offsetWidth, height = menu.offsetHeight;
+        const below = window.innerHeight - rect.bottom;
+        const top = below < height + 12 ? rect.top - height - 6 : rect.bottom + 6;
+        menu.style.top = `${Math.max(8, top)}px`;
+        menu.style.left = `${Math.min(window.innerWidth - width - 8, Math.max(8, rect.right - width))}px`;
     }
 }
 
 function closeAllActionDropdowns() {
     document.querySelectorAll('.action-dropdown-menu').forEach(el => {
         el.classList.add('hidden');
+        el.classList.remove('is-floating');
+        if (el._home && el.parentElement !== el._home) {
+            if (el._home.isConnected) el._home.appendChild(el); else el.remove();
+        }
     });
 }
+window.addEventListener('scroll', closeAllActionDropdowns, true);
+window.addEventListener('resize', closeAllActionDropdowns);
+
 
 function formatThousands(val) {
     if (val === null || val === undefined || val === '') return '';
@@ -513,7 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.action-dropdown')) {
+        if (!e.target.closest('.action-dropdown, .action-dropdown-menu')) {
             closeAllActionDropdowns();
         }
     });

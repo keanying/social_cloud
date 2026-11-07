@@ -583,7 +583,7 @@ body.cs { background: #eef2f8; }
 }
 .cs-rail a:hover::after, .cs-rail a:focus-visible::after { opacity: 1; transform: translate(0, -50%); }
 
-.cs-content { padding: 8px 32px 48px 120px; min-width: 0; flex: 1; }
+.cs-content { padding: 18px 32px 48px 120px; min-width: 0; flex: 1; }
 /* 宽屏：页头、图标栏、内容区收在同一个居中框架里，内容铺满框架，不再一侧留白 */
 .console-app { width: 100%; max-width: 1680px; margin: 0 auto; position: relative; }
 .cs-rail { left: max(28px, calc((100vw - 1680px) / 2 + 28px)); }
@@ -608,7 +608,6 @@ body.cs { background: #eef2f8; }
 .cs-content [class*="bg-slate-200/70"] { background: rgba(255, 255, 255, .55) !important; border-color: var(--cs-line) !important; border-radius: 999px; }
 .cs-content [class*="bg-slate-200/70"] > a { border-radius: 999px; }
 .cs-content [class*="bg-slate-200/70"] > a.bg-white { background: var(--cs-ink) !important; color: #fff !important; }
-.cs-content thead, .cs-content thead tr { background: rgba(248, 250, 252, .6) !important; }
 .modal-card { border-radius: 28px !important; }
 
 /* 窄屏：图标栏变为底部横条 */
@@ -674,3 +673,44 @@ body.cs { background: #eef2f8; }
   color: #fff; border: 2px solid #fff; margin-left: -8px; background: var(--c, #64748b);
 }
 .cs-bubbles span:first-child { margin-left: 0; }
+
+/* ==========================================================================
+   数据表格（参考 Semi Design Table）：浅色表头、宽松行高、柔和分隔线、悬停高亮、圆角标签
+   ========================================================================== */
+.cs-content .table-wrap { border: 0 !important; border-radius: 14px; background: rgba(255, 255, 255, .55); }
+.cs-content table { font-size: 13px; border-collapse: separate !important; border-spacing: 0; }
+.cs-content table thead { background: transparent !important; border: 0 !important; }
+.cs-content table thead th {
+  background: rgba(46, 50, 56, .045); color: rgba(28, 31, 35, .62); font-size: 12.5px; font-weight: 600;
+  text-transform: none; letter-spacing: 0; padding-top: 12px !important; padding-bottom: 12px !important;
+  border-bottom: 1px solid rgba(28, 31, 35, .08);
+}
+.cs-content table thead th:first-child { border-top-left-radius: 12px; }
+.cs-content table thead th:last-child { border-top-right-radius: 12px; }
+.cs-content table tbody > tr { border-color: transparent !important; }
+.cs-content table tbody td {
+  padding-top: 14px !important; padding-bottom: 14px !important; color: #1c1f23;
+  border-bottom: 1px solid rgba(28, 31, 35, .06); transition: background .15s;
+}
+.cs-content table tbody tr:last-child td { border-bottom: 0; }
+.cs-content table tbody tr:hover td { background: rgba(46, 50, 56, .04) !important; }
+.cs-content table input[type="checkbox"] { width: 16px; height: 16px; border-radius: 4px; accent-color: var(--cs-blue); }
+/* 状态标签：圆角胶囊 + 前置圆点（Semi Tag shape="circle"） */
+.cs-content table td span.rounded-full[class*="bg-"] {
+  display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px !important;
+  border: 0 !important; font-size: 12px; font-weight: 500;
+}
+.cs-content table td span.rounded-full[class*="bg-"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .85; }
+/* 头像 + 名称 */
+.cs-avatar-cell { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.cs-avatar-sm {
+  width: 28px; height: 28px; flex: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff; background: var(--av, var(--cs-blue));
+}
+/* 行操作：文字按钮 + 更多 */
+.cs-row-btn { height: 28px; padding: 0 10px; border-radius: 8px; font-size: 12.5px; font-weight: 600; color: var(--cs-blue); background: transparent; transition: background .15s; }
+.cs-row-btn:hover { background: rgba(11, 101, 255, .08); }
+.cs-content .action-dropdown-trigger { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px !important; }
+/* 更多操作菜单：fixed 定位，避免被表格的横向滚动容器裁切 */
+.action-dropdown-menu.is-floating { position: fixed !important; right: auto !important; margin: 0 !important; z-index: 60; border-radius: 12px; border-color: rgba(28, 31, 35, .08) !important; box-shadow: 0 12px 32px -8px rgba(28, 31, 35, .25) !important; padding: 4px !important; }
+.action-dropdown-menu.is-floating .action-dropdown-item { border-radius: 8px; padding: 8px 10px !important; font-size: 13px !important; }
