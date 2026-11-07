@@ -144,15 +144,32 @@
             const loading = main.classList.contains('pointer-events-none');
             bar.classList.toggle('is-on', loading);
             main.classList.toggle('cs-loading', loading);
-            if (!loading) { bindTips(main); tickNumbers(main); }
+            if (!loading) { bindTips(main); tickNumbers(main); applyFit(); }
         }).observe(main, { attributes: true, attributeFilter: ['class'] });
     }
+
+    /* ---------- 列表页按屏幕高度固定：表格在卡片内滚动、表头吸顶、分页固定在底部 ---------- */
+    const FIT_MIN_WIDTH = 768, FIT_MIN_HEIGHT = 560;
+    function applyFit() {
+        const root = document.documentElement;
+        const main = document.querySelector('.cs-content > main');
+        document.querySelectorAll('.cs-fit-chain').forEach((el) => el.classList.remove('cs-fit-chain'));
+        const wraps = main ? main.querySelectorAll('.table-wrap') : [];
+        const fits = wraps.length === 1 && window.innerWidth >= FIT_MIN_WIDTH && window.innerHeight >= FIT_MIN_HEIGHT;
+        root.classList.toggle('cs-fit', fits);
+        if (!fits) return;
+        // 从表格容器向上直到 main，逐层设为可伸缩，让表格占满剩余高度
+        for (let el = wraps[0].parentElement; el && el !== main; el = el.parentElement) el.classList.add('cs-fit-chain');
+    }
+    let fitTimer = 0;
+    window.addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(applyFit, 120); });
 
     function init() {
         bindTips(document);
         bindTabCursor();
         tickNumbers(document);
         bindLoadingBar();
+        applyFit();
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

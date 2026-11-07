@@ -780,3 +780,28 @@ body.cs { background: #eef2f8; }
   .cs-tab-cursor, .cs-tooltip, .switch-slider::before { transition: none !important; }
   [id^="tab-content-"], .action-dropdown-menu.is-floating:not(.hidden), .batch-dropdown-menu:not(.hidden), .cs-progress::before { animation: none !important; }
 }
+
+/* ==========================================================================
+   列表页按屏幕高度固定（console-ui.js 在只有一个主表格的页面加 html.cs-fit）
+   页面本身不滚动；卡片铺满剩余高度；表格在卡片内滚动，表头吸顶，分页固定在底部
+   ========================================================================== */
+html.cs-fit, html.cs-fit body { height: 100%; overflow: hidden; }
+html.cs-fit .console-app { height: 100vh; display: flex; flex-direction: column; }
+html.cs-fit .cs-top { flex: none; }
+html.cs-fit .cs-content { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: 24px; }
+html.cs-fit .cs-content > main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+html.cs-fit .cs-content > main > *,
+html.cs-fit .cs-fit-chain > * { flex: none; }
+html.cs-fit .cs-content > main > .cs-fit-chain,
+html.cs-fit .cs-fit-chain > .cs-fit-chain,
+html.cs-fit .cs-fit-chain { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+html.cs-fit .cs-fit-chain > .table-wrap { flex: 1 1 auto; min-height: 0; overflow: auto !important; }
+html.cs-fit .table-wrap thead th { position: sticky; top: 0; z-index: 2; background: #f2f3f6 !important; }
+/* 表格区域使用细滚动条 */
+html.cs-fit .table-wrap { scrollbar-width: thin; scrollbar-color: rgba(28, 31, 35, .2) transparent; }
+html.cs-fit .table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+html.cs-fit .table-wrap::-webkit-scrollbar-thumb { background: rgba(28, 31, 35, .2); border-radius: 6px; }
+
+/* 其余长内容页：照常滚动，但隐藏浏览器滚动条 */
+html:has(body.cs) { scrollbar-width: none; }
+html:has(body.cs)::-webkit-scrollbar { display: none; }
